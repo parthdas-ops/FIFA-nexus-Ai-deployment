@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FIFA Nexus — Fan Portal</title>
+  <script>
+    (function() {
+      const userStr = sessionStorage.getItem('nexus_user');
+      if (!userStr) {
+        alert('Access Denied: Please log in first.');
+        window.location.href = 'auth.html';
+        return;
+      }
+      try {
+        const user = JSON.parse(userStr);
+        if (user.role !== 'fan') {
+          alert('Access Denied: You do not have permission to view the Fan Portal.');
+          window.location.href = 'auth.html';
+        }
+      } catch (e) {
+        window.location.href = 'auth.html';
+      }
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/shared.css" />
+  <style>
+    /* Fan specific dashboard customization */
+    .fan-bg-glow {
+      position: fixed;
+      top: -30%; right: -20%; width: 60%; height: 60%;
+      background: radial-gradient(circle, rgba(0, 229, 204, 0.08) 0%, transparent 70%);
+      filter: blur(80px); pointer-events: none; z-index: -1;
+    }
+
+    /* Holographic Ticket Card */
+    .hologram-ticket {
+      position: relative;
+      background: linear-gradient(135deg, rgba(17, 29, 53, 0.9) 0%, rgba(26, 43, 74, 0.7) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      overflow: hidden;
+      perspective: 1000px;
+      transition: transform 0.1s ease;
+      box-shadow: var(--shadow-lg), 0 0 20px rgba(0, 229, 204, 0.05);
+    }
+    .hologram-ticket::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(125deg, transparent 30%, rgba(255, 255, 255, 0.08) 40%, rgba(0, 229, 204, 0.12) 50%, rgba(255, 215, 0, 0.08) 60%, transparent 70%);
+      background-size: 200% 200%;
+      background-position: 0% 0%;
+      transition: background-position 0.1s ease;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    /* Ticket ticket notch cuts */
+    .ticket-notch-l, .ticket-notch-r {
+      width: 20px; height: 20px; background: var(--bg-base);
+      position: absolute; top: 50%; transform: translateY(-50%); border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.08); z-index: 3;
+    }
+    .ticket-notch-l { left: -11px; }
+    .ticket-notch-r { right: -11px; }
+
+    /* SVG Stadium Map styling */
+    .stadium-svg {
+      width: 100%;
+      max-height: 480px;
+      background: #090e1a;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+    }
+    .map-gate {
+      fill: rgba(0, 229, 204, 0.08);
+      stroke: rgba(0, 229, 204, 0.3);
+      stroke-width: 1.5;
+      cursor: pointer;
+      transition: all var(--trans-fast);
+    }
+    .map-gate:hover {
+      fill: rgba(0, 229, 204, 0.25);
+      stroke: var(--primary);
+    }
+    .map-gate.active {
+      fill: rgba(0, 229, 204, 0.35);
+      stroke: var(--primary);
+      filter: drop-shadow(0 0 8px var(--primary));
+    }
+    .map-obstacle {
+      fill: rgba(255, 59, 78, 0.1);
+      stroke: var(--danger);
+      stroke-dasharray: 4;
+    }
+    .map-route-path {
+      fill: none;
+      stroke: var(--primary);
+      stroke-width: 3.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-dasharray: 8 6;
+      animation: dashMove 30s linear infinite;
+    }
+    @keyframes dashMove {
+      to { stroke-dashoffset: -1000; }
+    }
+
+    /* AI Chat interface */
+    .chat-view {
+      height: 520px;
+      display: flex;
+      flex-direction: column;
+    }
+    .chat-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .chat-prompt-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 10px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      color: var(--text-secondary);
+      transition: all var(--trans-fast);
+      text-align: left;
+    }
+    .chat-prompt-card:hover {
+      background: var(--primary-dim);
+      border-color: rgba(0, 229, 204, 0.3);
+      color: var(--primary);
+    }
+    .chat-input-area {
+      padding: 16px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 10px;
+      background: rgba(5, 10, 20, 0.3);
+      align-items: center;
+    }
+    .chat-input-field {
+      flex: 1;
+      padding: 12px 18px;
+      background: var(--bg-base);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-full);
+      color: var(--text-primary);
+      font-size: 14px;
+      outline: none;
+      font-family: 'Inter', sans-serif;
+      transition: all var(--trans-fast);
+    }
+    .chat-input-field:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-dim);
+    }
+    .chat-send {
+      width: 42px;
+      height: 42px;
+      background: linear-gradient(135deg, var(--primary) 0%, #00B8A5 100%);
+      border: none;
+      border-radius: var(--radius-full);
+      color: #000;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all var(--trans-fast);
+      flex-shrink: 0;
+    }
+    .chat-send:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 15px var(--primary-glow);
+    }
+
+    /* Food items listing */
+    .food-card {
+      transition: transform var(--trans-fast);
+    }
+    .food-card:hover {
+      transform: translateY(-4px);
+    }
+
+    /* Tab navigation views */
+    .tab-view {
+      display: none;
+    }
+    .tab-view.active {
+      display: block;
+      animation: fadeInUp 0.4s ease forwards;
+    }
+
+    /* Custom emergency pulse button */
+    .sos-btn-large {
+      width: 180px; height: 180px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--danger) 0%, #B3001B 100%);
+      color: #fff; font-size: 38px; font-weight: 800;
+      border: 10px solid rgba(255, 59, 78, 0.15);
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      margin: 40px auto; position: relative; outline: none;
+      box-shadow: 0 10px 40px rgba(255, 59, 78, 0.4);
+      transition: all 0.3s ease;
+    }
+    .sos-btn-large:hover {
+      transform: scale(1.05);
+      box-shadow: 0 15px 50px rgba(255, 59, 78, 0.6);
+      border-color: rgba(255, 59, 78, 0.25);
+    }
+    .sos-btn-large::before {
+      content: ''; position: absolute; inset: -20px; border-radius: 50%;
+      border: 2px dashed rgba(255, 59, 78, 0.4);
+      animation: rotate 15s linear infinite;
+    }
+    .sos-pulse-ring {
+      position: absolute; inset: 0; border-radius: 50%;
+      border: 2px solid var(--danger);
+      animation: pulseRing 2s infinite ease-out;
+      pointer-events: none;
+    }
+
+    .qr-container {
+      background: #fff;
+      padding: 12px;
+      border-radius: var(--radius-md);
+      display: inline-block;
+      position: relative;
+    }
+    .qr-refresh-bar {
+      position: absolute; bottom: 0; left: 0; height: 3px;
+      background: var(--primary);
+      width: 100%; transition: width 1s linear;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="fan-bg-glow"></div>
+
+  <!-- COLLAPSIBLE SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon" style="background: none; box-shadow: none; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; flex-shrink: 0;">
+        <svg viewBox="0 0 100 100" width="34" height="34" style="filter: drop-shadow(0 0 4px rgba(0, 229, 204, 0.4));">
+          <polygon points="50,12 85,32 85,68 50,88 15,68 15,32" fill="none" stroke="#00E5CC" stroke-width="6" stroke-linejoin="round" />
+          <circle cx="50" cy="30" r="7" fill="#FFF" />
+          <circle cx="33" cy="53" r="6" fill="#00E5CC" />
+          <circle cx="67" cy="53" r="6" fill="#00E5CC" />
+          <circle cx="50" cy="70" r="7" fill="#0080FF" />
+          <line x1="50" y1="30" x2="33" y2="53" stroke="rgba(255,255,255,0.4)" stroke-width="3.5" />
+          <line x1="50" y1="30" x2="67" y2="53" stroke="rgba(255,255,255,0.4)" stroke-width="3.5" />
+          <line x1="33" y1="53" x2="50" y2="70" stroke="rgba(255,255,255,0.4)" stroke-width="3.5" />
+          <line x1="67" y1="53" x2="50" y2="70" stroke="rgba(255,255,255,0.4)" stroke-width="3.5" />
+          <circle cx="50" cy="50" r="8" fill="#00E5CC" />
+        </svg>
+      </div>
+      <div>
+        <div class="logo-text">FIFA Nexus OS</div>
+        <div class="logo-sub">Fan Dashboard</div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Stadium Assistant</div>
+      <button class="sidebar-item active" data-tab="dashboard" onclick="switchTab('dashboard')">
+        <span class="item-icon">🏠</span> Dashboard
+      </button>
+      <button class="sidebar-item" data-tab="ai-chat" onclick="switchTab('ai-chat')">
+        <span class="item-icon">🤖</span> AI Concierge
+      </button>
+      <button class="sidebar-item" data-tab="stadium-map" onclick="switchTab('stadium-map')">
+        <span class="item-icon">🗺️</span> Stadium Guide Map
+      </button>
+      <button class="sidebar-item" data-tab="tickets" onclick="switchTab('tickets')">
+        <span class="item-icon">🎫</span> Smart Tickets
+      </button>
+      <button class="sidebar-item" data-tab="food" onclick="switchTab('food')">
+        <span class="item-icon">🍔</span> Fast Food Queue
+      </button>
+      <button class="sidebar-item" data-tab="emergency" onclick="switchTab('emergency')">
+        <span class="item-icon">🚨</span> Emergency SOS
+      </button>
+    </div>
+
+    <div class="sidebar-section" style="margin-top:auto;">
+      <div style="border-top:1px solid var(--border); padding-top:16px; margin:0 8px;">
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:var(--radius-md);background:rgba(255,255,255,0.03);">
+          <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;font-size:16px;">👤</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;">Guest Fan</div>
+            <div style="font-size:10px;color:var(--text-muted);">Section D, Row 14</div>
+          </div>
+        </div>
+        <a href="auth.html" onclick="sessionStorage.removeItem('nexus_user');" class="sidebar-item" style="margin-top:10px; color:var(--danger);">
+          <span class="item-icon">🚪</span> Logout Console
+        </a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- HEADER -->
+  <header class="header">
+    <button class="btn btn-outline btn-icon" id="menu-toggle" style="display:none;" onclick="toggleMobileSidebar()">☰</button>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="status-dot live"></span>
+      <span style="font-size:13px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;">Argentina vs USA live</span>
+      <span style="background:rgba(255,255,255,0.08);padding:2px 8px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;" id="game-clock">74:12</span>
+      <span style="color:var(--accent);font-weight:700;font-size:13px;">2 - 1</span>
+    </div>
+
+    <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
+      <div style="text-align:right;" class="hidden-mobile">
+        <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;">Gate Status</div>
+        <div style="font-size:12px;font-weight:600;color:var(--success);">Gate D Open (No Line)</div>
+      </div>
+      <div style="width:1px;height:24px;background:var(--border);" class="hidden-mobile"></div>
+      <button class="btn btn-outline btn-sm" onclick="switchTab('ai-chat')">🤖 Ask AI</button>
+    </div>
+  </header>
+
+  <!-- MAIN LAYOUT -->
+  <main class="main-layout">
+    <div class="page-content">
+
+      <!-- ========================================================
+           TAB 1: DASHBOARD
+           ======================================================== -->
+      <section class="tab-view active" id="view-dashboard">
+        <div style="display:flex;justify-content:between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:16px;">
+          <div>
+            <h1 style="font-size:28px;margin-bottom:4px;">Welcome back, <span class="gradient-text">Alex</span></h1>
+            <p style="font-size:14px;color:var(--text-secondary);">Here's your real-time stadium timeline for today's match</p>
+          </div>
+          <div style="display:flex;gap:10px;">
+            <span class="badge badge-primary">Seat D-14-06</span>
+            <span class="badge badge-gold">Match 42</span>
+          </div>
+        </div>
+
+        <div class="grid-cols-3">
+          <!-- Live Game Widget -->
+          <div class="glass-card p-6" style="grid-column: span 2;">
+            <div style="display:flex;justify-content:between;margin-bottom:16px;">
+              <span class="section-title">Match Action Tracker</span>
+              <span class="badge badge-danger">Live Stream</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-around;padding:12px 0;">
+              <div style="text-align:center;">
+                <div style="font-size:42px;">🇦🇷</div>
+                <div style="font-family:'Outfit',sans-serif;font-size:16px;font-weight:700;margin-top:6px;">Argentina</div>
+                <div style="font-size:12px;color:var(--text-muted);">Messi 32' (P)</div>
+              </div>
+              <div style="text-align:center;">
+                <div style="font-size:38px;font-weight:800;" id="live-score">2 - 1</div>
+                <div style="font-size:12px;color:var(--success);font-weight:600;">Second Half</div>
+              </div>
+              <div style="text-align:center;">
+                <div style="font-size:42px;">🇺🇸</div>
+                <div style="font-family:'Outfit',sans-serif;font-size:16px;font-weight:700;margin-top:6px;">United States</div>
+                <div style="font-size:12px;color:var(--text-muted);">Pulisic 58'</div>
+              </div>
+            </div>
+            <div class="progress-bar mt-4">
+              <div class="progress-fill primary" style="width: 82%;"></div>
+            </div>
+            <div style="display:flex;justify-content:between;font-size:11px;color:var(--text-muted);margin-top:8px;">
+              <span>Possession: ARG 54% - 46% USA</span>
+              <span>82 min played</span>
+            </div>
+          </div>
+
+          <!-- Dynamic Ticket Summary -->
+          <div class="glass-card p-6 flex flex-col justify-between">
+            <div>
+              <div style="display:flex;justify-content:between;align-items:start;margin-bottom:12px;">
+                <span style="font-size:12px;text-transform:uppercase;color:var(--text-muted);letter-spacing:1px;">Active Entry Token</span>
+                <span class="badge badge-success">Valid</span>
+              </div>
+              <h3 style="font-size:20px;font-family:'Outfit',sans-serif;margin-bottom:4px;">Gate D-02</h3>
+              <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">Scan dynamically generated QR to enter concourse</p>
+            </div>
+            <div style="text-align:center;margin:12px 0;">
+              <button class="btn btn-outline btn-sm" onclick="switchTab('tickets')">🎫 View Ticket QR</button>
+            </div>
+            <div style="font-size:11px;color:var(--text-muted);text-align:center;border-top:1px solid var(--border);padding-top:12px;">
+              Sec D · Row 14 · Seat 06
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Assistant Recommendation Timeline -->
+        <h2 class="section-title mt-6 mb-4">Nexus Personalized AI Recommendations</h2>
+        <div class="grid-cols-3">
+          <div class="glass-card p-6" style="border-left: 3px solid var(--primary);">
+            <div style="font-size:24px;margin-bottom:12px;">🍔</div>
+            <h4 style="font-size:16px;margin-bottom:8px;">Food Queue Advisory</h4>
+            <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;">Current queue at Section D concessions is empty (~2m). Halal shawarma stands are open.</p>
+            <button class="btn btn-ghost btn-sm mt-4" style="padding-left:0;" onclick="switchTab('food')">Order Fast Food →</button>
+          </div>
+
+          <div class="glass-card p-6" style="border-left: 3px solid var(--accent);">
+            <div style="font-size:24px;margin-bottom:12px;">🚶</div>
+            <h4 style="font-size:16px;margin-bottom:8px;">Route Optimizer</h4>
+            <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;">Crowd density at main concourse Gate A is increasing. Exit post-match via south tunnel for faster transit.</p>
+            <button class="btn btn-ghost btn-sm mt-4" style="padding-left:0;" onclick="switchTab('stadium-map')">Open Live Map →</button>
+          </div>
+
+          <div class="glass-card p-6" style="border-left: 3px solid var(--info);">
+            <div style="font-size:24px;margin-bottom:12px;">🚌</div>
+            <h4 style="font-size:16px;margin-bottom:8px;">Transit Schedule</h4>
+            <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;">Metro departures are doubled for post-match. Pre-book your digital shuttle boarding pass now.</p>
+            <button class="btn btn-ghost btn-sm mt-4" style="padding-left:0;" onclick="alert('Transit Reservation: Booking confirmed for Shuttle Route 4.')">Book Shuttle →</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================
+           TAB 2: AI CONCIERGE CHAT
+           ======================================================== -->
+      <section class="tab-view" id="view-ai-chat">
+        <div class="glass-card chat-view overflow-hidden">
+          <div class="chat-header">
+            <div class="chat-avatar">🤖</div>
+            <div>
+              <div class="chat-name">Nexus AI Concierge</div>
+              <div class="chat-status">● Live Stadium Intelligence Agent</div>
+            </div>
+            <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
+              <input type="password" class="input" style="padding:4px 8px;font-size:12px;width:160px;" id="gemini-key-input" placeholder="Paste Gemini API Key" onchange="saveGeminiKey()" />
+              <select class="input" style="padding:4px 8px;font-size:12px;width:auto;" id="lang-select">
+                <option value="en">🇺🇸 English</option>
+                <option value="es">🇪🇸 Español</option>
+                <option value="ar">🇸🇦 العربية</option>
+                <option value="fr">🇫🇷 Français</option>
+              </select>
+              <button class="btn btn-outline btn-sm" onclick="clearChat()">Clear Session</button>
+            </div>
+          </div>
+
+          <div class="chat-body" id="chat-conversation">
+            <div class="chat-msg bot animate-fadeInUp">
+              <div class="chat-bubble">👋 Marhaba, Hello! I'm Nexus, your official FIFA World Cup 2026 Smart Stadium guide. Ask me details about seating, concessions, transit routes, or stadium events.</div>
+              <div class="chat-time">Just now</div>
+            </div>
+          </div>
+
+          <!-- Quick Suggestion Grid -->
+          <div style="padding:10px 20px;background:rgba(0,0,0,0.15);border-top:1px solid var(--border);display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:10px;">
+            <button class="chat-prompt-card" onclick="sendQuickQuery('Where is my seat, Section D Row 14 Seat 06?')">📍 Where is my seat?</button>
+            <button class="chat-prompt-card" onclick="sendQuickQuery('Where is the nearest halal shawarma food stall?')">🍔 Halal food near me?</button>
+            <button class="chat-prompt-card" onclick="sendQuickQuery('Show me the quickest exit route after the match')">🚶 Quickest exit route?</button>
+            <button class="chat-prompt-card" onclick="sendQuickQuery('How do I contact emergency medical first aid?')">🏥 Medical first aid?</button>
+          </div>
+
+          <div class="chat-input-area">
+            <input type="text" class="chat-input-field" id="chat-input-box" placeholder="Ask Nexus Stadium AI..." />
+            <button class="chat-send" onclick="submitChatMsg()">➤</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================
+           TAB 3: STADIUM GUIDE MAP
+           ======================================================== -->
+      <section class="tab-view" id="view-stadium-map">
+        <div class="grid-cols-3">
+          <div class="glass-card p-6" style="grid-column: span 2;">
+            <div style="display:flex;justify-content:between;align-items:center;margin-bottom:16px;">
+              <span class="section-title">Smart Navigation System</span>
+              <div style="display:flex;gap:8px;">
+                <span class="badge badge-success" onclick="toggleMapOverlay('density')">Density Overlay: ON</span>
+                <span class="badge badge-primary" onclick="toggleMapOverlay('poi')">POIs: Visible</span>
+              </div>
+            </div>
+
+            <!-- SVG Stadium map mockup -->
+            <svg class="stadium-svg" viewBox="0 0 800 500" id="map-svg-element">
+              <!-- Grid background -->
+              <defs>
+                <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                  <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.02)" stroke-width="1"/>
+                </pattern>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#grid)" />
+
+              <!-- Outer Stadium Ring -->
+              <ellipse cx="400" cy="250" rx="350" ry="210" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="8" />
+              <!-- Pitch (Field) -->
+              <rect x="280" y="160" width="240" height="180" fill="#0c2514" stroke="rgba(255,255,255,0.3)" stroke-width="2" rx="4" />
+              <circle cx="400" cy="250" r="40" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2" />
+              <line x1="400" y1="160" x2="400" y2="340" stroke="rgba(255,255,255,0.3)" stroke-width="2" />
+
+              <!-- Stand Sectors (Gates) -->
+              <!-- North Stand Section A -->
+              <path d="M 250 80 Q 400 30 550 80 L 510 130 Q 400 95 290 130 Z" class="map-gate" id="gate-sec-a" onclick="highlightMapSector('A')" />
+              <!-- East Stand Section B -->
+              <path d="M 570 100 Q 730 250 570 400 L 520 350 Q 640 250 520 150 Z" class="map-gate" id="gate-sec-b" onclick="highlightMapSector('B')" />
+              <!-- South Stand Section C -->
+              <path d="M 250 420 Q 400 470 550 420 L 510 370 Q 400 405 290 370 Z" class="map-gate" id="gate-sec-c" onclick="highlightMapSector('C')" />
+              <!-- West Stand Section D (Current user zone) -->
+              <path d="M 230 100 Q 70 250 230 400 L 280 350 Q 160 250 280 150 Z" class="map-gate active" id="gate-sec-d" onclick="highlightMapSector('D')" />
+
+              <!-- Obstacle (Congested crowd zone) -->
+              <circle cx="550" cy="250" r="35" class="map-obstacle" />
+              <text x="550" y="255" fill="var(--danger)" font-size="10" font-family="Outfit" font-weight="700" text-anchor="middle">CONGESTION</text>
+
+              <!-- User Position Icon -->
+              <circle cx="210" cy="280" r="8" fill="var(--primary)" stroke="#fff" stroke-width="2" />
+              <circle cx="210" cy="280" r="16" fill="none" stroke="var(--primary)" stroke-width="1.5" style="animation: pulseRing 2s infinite ease-out;" />
+              <text x="210" y="305" fill="#fff" font-size="11" font-family="Outfit" font-weight="700" text-anchor="middle">YOU</text>
+
+              <!-- POI Markers -->
+              <!-- Restroom Section D -->
+              <circle cx="240" cy="180" r="6" fill="var(--info)" />
+              <text x="240" y="174" fill="var(--text-secondary)" font-size="10" font-family="Outfit" text-anchor="middle">🚻 Restroom</text>
+
+              <!-- Shawarma Stall -->
+              <circle cx="240" cy="320" r="6" fill="var(--accent)" />
+              <text x="240" y="314" fill="var(--text-secondary)" font-size="10" font-family="Outfit" text-anchor="middle">🍔 Halal Food</text>
+
+              <!-- Medical Center -->
+              <circle cx="400" cy="80" r="6" fill="var(--danger)" />
+              <text x="400" y="74" fill="var(--text-secondary)" font-size="10" font-family="Outfit" text-anchor="middle">🏥 First Aid</text>
+
+              <!-- Active Navigation Path (Dotted pulsing route line) -->
+              <path d="M 210 280 Q 220 300 240 320" class="map-route-path" id="navigation-route" style="display:none;" />
+            </svg>
+          </div>
+
+          <!-- Navigation control panel -->
+          <div class="glass-card p-6 flex flex-col justify-between">
+            <div>
+              <span class="section-title mb-4">Route Navigator</span>
+              <div class="form-group mt-4">
+                <label class="form-label">Current Location</label>
+                <input class="input" type="text" value="Section D, Row 14, Seat 06" readonly />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Destination POI</label>
+                <select class="input" id="navigation-dest" onchange="calculateRoute()">
+                  <option value="none">-- Select Target Concourse --</option>
+                  <option value="food">Al-Majd Halal Shawarma (Gate D2)</option>
+                  <option value="washroom">Restrooms Level 1 (Section D)</option>
+                  <option value="firstaid">Medical Response Center (Section A)</option>
+                </select>
+              </div>
+
+              <!-- Estimated metrics -->
+              <div id="route-metrics" style="display:none;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px;margin-top:20px;">
+                <div style="display:flex;justify-content:between;margin-bottom:8px;">
+                  <span style="font-size:12px;color:var(--text-muted);">Estimated Walk Time:</span>
+                  <span style="font-size:13px;font-weight:700;color:var(--primary);" id="walk-time-est">1 min 45 sec</span>
+                </div>
+                <div style="display:flex;justify-content:between;">
+                  <span style="font-size:12px;color:var(--text-muted);">Congestion Hazard:</span>
+                  <span style="font-size:13px;font-weight:700;color:var(--success);">Low (Green route)</span>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <button class="btn btn-primary w-full" onclick="startNavigationGuide()">Start Turn-by-Turn Guide</button>
+              <button class="btn btn-outline w-full mt-2" onclick="alert('Biometric ID synced. AR Navigation HUD initiated on your mobile camera.')">Initiate AR Camera HUD</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================
+           TAB 4: SMART TICKETS
+           ======================================================== -->
+      <section class="tab-view" id="view-tickets">
+        <div style="max-width:560px;margin:0 auto;">
+          <!-- 3D Holographic rotatable card -->
+          <div class="hologram-ticket" id="ticket-card" onmousemove="handleTicketGlow(event)" onmouseleave="resetTicketGlow()">
+            <div class="ticket-notch-l"></div>
+            <div class="ticket-notch-r"></div>
+
+            <div style="display:flex;justify-content:between;align-items:start;margin-bottom:24px;">
+              <div>
+                <span class="badge badge-gold" style="font-size:9px;margin-bottom:6px;">FIFA World Cup 2026</span>
+                <h2 style="font-size:22px;font-family:'Outfit',sans-serif;">Alex Johnson</h2>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;">Entry Ticket</div>
+                <div style="font-size:16px;font-weight:800;color:var(--primary);">MATCH 42</div>
+              </div>
+            </div>
+
+            <!-- Team Flags / Match Info -->
+            <div style="display:flex;justify-content:between;align-items:center;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px;margin-bottom:20px;">
+              <div>
+                <div style="font-size:13px;font-weight:600;">ARG vs USA</div>
+                <div style="font-size:11px;color:var(--text-muted);">July 10, 2026 · 20:00</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:13px;font-weight:700;">Mercedes-Benz Stadium</div>
+                <div style="font-size:11px;color:var(--text-muted);">Atlanta, USA</div>
+              </div>
+            </div>
+
+            <!-- Seat Breakdown info grid -->
+            <div class="grid-cols-4 text-center" style="margin-bottom:24px;">
+              <div style="background:rgba(255,255,255,0.02);padding:10px;border-radius:8px;">
+                <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;">Gate</div>
+                <div style="font-size:16px;font-weight:700;color:#fff;">D-02</div>
+              </div>
+              <div style="background:rgba(255,255,255,0.02);padding:10px;border-radius:8px;">
+                <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;">Section</div>
+                <div style="font-size:16px;font-weight:700;color:#fff;">D</div>
+              </div>
+              <div style="background:rgba(255,255,255,0.02);padding:10px;border-radius:8px;">
+                <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;">Row</div>
+                <div style="font-size:16px;font-weight:700;color:#fff;">14</div>
+              </div>
+              <div style="background:rgba(255,255,255,0.02);padding:10px;border-radius:8px;">
+                <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;">Seat</div>
+                <div style="font-size:16px;font-weight:700;color:#fff;">06</div>
+              </div>
+            </div>
+
+            <!-- Verification & Dynamic QR (Anti-Fraud protection) -->
+            <div style="text-align:center;">
+              <div class="qr-container">
+                <!-- SVG Mock of QR Code -->
+                <svg width="140" height="140" viewBox="0 0 100 100" style="display:block;">
+                  <rect width="100" height="100" fill="#fff" />
+                  <!-- QR corner sync markers -->
+                  <rect x="5" y="5" width="25" height="25" fill="#000" />
+                  <rect x="10" y="10" width="15" height="15" fill="#fff" />
+                  <rect x="5" y="70" width="25" height="25" fill="#000" />
+                  <rect x="10" y="75" width="15" height="15" fill="#fff" />
+                  <rect x="70" y="5" width="25" height="25" fill="#000" />
+                  <rect x="75" y="10" width="15" height="15" fill="#fff" />
+                  <!-- Random QR codes mock dots -->
+                  <rect x="35" y="10" width="5" height="15" fill="#000" />
+                  <rect x="45" y="25" width="10" height="5" fill="#000" />
+                  <rect x="5" y="45" width="15" height="5" fill="#000" />
+                  <rect x="25" y="35" width="5" height="10" fill="#000" />
+                  <rect x="40" y="40" width="20" height="20" fill="#000" />
+                  <rect x="45" y="45" width="10" height="10" fill="#fff" />
+                  <rect x="75" y="45" width="15" height="15" fill="#000" />
+                  <rect x="70" y="70" width="20" height="5" fill="#000" />
+                  <rect x="80" y="80" width="15" height="15" fill="#000" />
+                  <rect x="35" y="80" width="15" height="5" fill="#000" />
+                </svg>
+                <div class="qr-refresh-bar" id="qr-timer-line"></div>
+              </div>
+              <div style="display:flex;justify-content:center;align-items:center;gap:6px;margin-top:12px;">
+                <span class="status-dot live"></span>
+                <span style="font-size:11px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:1.5px;">Anti-Cloning Code refreshes in <span id="qr-timer-seconds" style="font-weight:700;">10</span>s</span>
+              </div>
+            </div>
+
+            <!-- Transfer options footer -->
+            <div style="display:flex;justify-content:between;border-top:1px solid var(--border);padding-top:16px;margin-top:20px;gap:12px;">
+              <button class="btn btn-outline btn-sm w-full" onclick="alert('Ticket verification fingerprint synced. Apple/Google Wallet file generated.')">Add to Wallet</button>
+              <button class="btn btn-outline btn-sm w-full" onclick="alert('Transfer ticket: Type guest email to send entry key secure token.')">Secure Transfer</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================
+           TAB 5: FAST FOOD ORDERING
+           ======================================================== -->
+      <section class="tab-view" id="view-food">
+        <div class="grid-cols-3">
+          <!-- Food Menu -->
+          <div style="grid-column: span 2;">
+            <h2 class="section-title mb-4">Mercedes-Benz Stadium Concessions</h2>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+              <!-- Item 1 -->
+              <div class="glass-card food-card p-4 flex gap-4">
+                <div style="font-size:48px;width:72px;height:72px;background:rgba(255,255,255,0.03);border-radius:12px;display:flex;align-items:center;justify-content:center;">🥙</div>
+                <div class="flex-col justify-between flex-1">
+                  <div>
+                    <h3 style="font-size:16px;">Al-Majd Shawarma wrap</h3>
+                    <p style="font-size:12px;color:var(--text-muted);margin:2px 0;">Spiced beef wrap, pickles, tahini garlic sauce (Halal)</p>
+                  </div>
+                  <div style="display:flex;justify-content:between;align-items:center;margin-top:8px;">
+                    <span style="color:var(--accent);font-weight:700;">$9.50</span>
+                    <button class="btn btn-primary btn-sm" onclick="addFoodOrder('Shawarma Wrap', 9.50)">Add</button>
+                  </div>
+                </div>
+              </div>
+              <!-- Item 2 -->
+              <div class="glass-card food-card p-4 flex gap-4">
+                <div style="font-size:48px;width:72px;height:72px;background:rgba(255,255,255,0.03);border-radius:12px;display:flex;align-items:center;justify-content:center;">🌭</div>
+                <div class="flex-col justify-between flex-1">
+                  <div>
+                    <h3 style="font-size:16px;">Stadium Classic Hotdog</h3>
+                    <p style="font-size:12px;color:var(--text-muted);margin:2px 0;">Beef sausage, mustard, relish, toasted bun</p>
+                  </div>
+                  <div style="display:flex;justify-content:between;align-items:center;margin-top:8px;">
+                    <span style="color:var(--accent);font-weight:700;">$5.00</span>
+                    <button class="btn btn-primary btn-sm" onclick="addFoodOrder('Classic Hotdog', 5.00)">Add</button>
+                  </div>
+                </div>
+              </div>
+              <!-- Item 3 -->
+              <div class="glass-card food-card p-4 flex gap-4">
+                <div style="font-size:48px;width:72px;height:72px;background:rgba(255,255,255,0.03);border-radius:12px;display:flex;align-items:center;justify-content:center;">🍟</div>
+                <div class="flex-col justify-between flex-1">
+                  <div>
+                    <h3 style="font-size:16px;">Loaded Cheesy Fries</h3>
+                    <p style="font-size:12px;color:var(--text-muted);margin:2px 0;">Crisp fries, cheese sauce, green jalapeños</p>
+                  </div>
+                  <div style="display:flex;justify-content:between;align-items:center;margin-top:8px;">
+                    <span style="color:var(--accent);font-weight:700;">$6.50</span>
+                    <button class="btn btn-primary btn-sm" onclick="addFoodOrder('Cheesy Fries', 6.50)">Add</button>
+                  </div>
+                </div>
+              </div>
+              <!-- Item 4 -->
+              <div class="glass-card food-card p-4 flex gap-4">
+                <div style="font-size:48px;width:72px;height:72px;background:rgba(255,255,255,0.03);border-radius:12px;display:flex;align-items:center;justify-content:center;">🥤</div>
+                <div class="flex-col justify-between flex-1">
+                  <div>
+                    <h3 style="font-size:16px;">Nexus Smart Soda</h3>
+                    <p style="font-size:12px;color:var(--text-muted);margin:2px 0;">Eco-cup dynamic beverage with flavor mixing</p>
+                  </div>
+                  <div style="display:flex;justify-content:between;align-items:center;margin-top:8px;">
+                    <span style="color:var(--accent);font-weight:700;">$4.00</span>
+                    <button class="btn btn-primary btn-sm" onclick="addFoodOrder('Smart Soda', 4.00)">Add</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Checkout Basket -->
+          <div class="glass-card p-6 flex flex-col justify-between" id="food-checkout-card">
+            <div>
+              <span class="section-title mb-4">Selected Items Basket</span>
+              <div id="basket-content" style="margin-top:20px;min-height:120px;display:flex;flex-direction:column;gap:12px;">
+                <div style="text-align:center;color:var(--text-muted);padding-top:40px;font-size:13px;">Basket is currently empty</div>
+              </div>
+              <div style="border-top:1px solid var(--border);padding-top:16px;margin-top:16px;">
+                <div style="display:flex;justify-content:between;font-weight:600;font-size:15px;">
+                  <span>Total Amount:</span>
+                  <span style="color:var(--accent);" id="basket-total">$0.00</span>
+                </div>
+              </div>
+            </div>
+            <div>
+              <button class="btn btn-primary w-full mt-6" onclick="submitFoodOrder()">Confirm Order & Pay</button>
+            </div>
+          </div>
+
+          <!-- Live Order status tracker (Simulated) -->
+          <div class="glass-card p-6 flex-col justify-between" id="food-tracker-card" style="display:none; grid-column: 3;">
+            <div>
+              <div style="display:flex;justify-content:between;margin-bottom:16px;">
+                <span class="section-title">Order Status Tracker</span>
+                <span class="badge badge-warning" id="food-status-badge">Cooking</span>
+              </div>
+              <p style="font-size:13px;color:var(--text-secondary);">Your food is being freshly prepared at Gate D2 Kitchen.</p>
+
+              <!-- Preparation Bar -->
+              <div class="progress-bar mt-6 mb-4">
+                <div class="progress-fill primary" id="food-tracker-progress" style="width: 25%;"></div>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:10px;font-size:12px;margin-top:20px;">
+                <div style="display:flex;justify-content:between;" id="track-step-1">
+                  <span>✓ 1. Order Received</span>
+                  <span style="color:var(--success);">Complete</span>
+                </div>
+                <div style="display:flex;justify-content:between;color:var(--text-secondary);" id="track-step-2">
+                  <span id="label-step-2">⌚ 2. In Kitchen (Cooking)</span>
+                  <span style="color:var(--warning);" id="status-step-2">Active</span>
+                </div>
+                <div style="display:flex;justify-content:between;color:var(--text-muted);" id="track-step-3">
+                  <span>☐ 3. Ready for Counter Pickup</span>
+                  <span id="status-step-3">Waiting</span>
+                </div>
+              </div>
+            </div>
+            <div style="margin-top:24px;">
+              <div style="background:rgba(255,255,255,0.02);padding:12px;border-radius:var(--radius-md);text-align:center;font-family:'JetBrains Mono',monospace;">
+                <div style="font-size:10px;color:var(--text-muted);">Pickup Token</div>
+                <div style="font-size:20px;font-weight:700;color:var(--accent);">TOKEN #73A</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================
+           TAB 6: EMERGENCY SOS SYSTEM
+           ======================================================== -->
+      <section class="tab-view" id="view-emergency">
+        <div style="max-width:540px;margin:0 auto;text-align:center;">
+          <h2 style="font-size:28px;margin-bottom:8px;font-family:'Outfit',sans-serif;" class="gradient-text">Emergency Safety Response</h2>
+          <p style="font-size:14px;color:var(--text-secondary);margin-bottom:30px;">
+            Nexus AI instantly routes emergency medical, safety, or fire responders directly to your seat coordinates.
+          </p>
+
+          <!-- SOS trigger state -->
+          <div id="sos-trigger-state">
+            <button class="sos-btn-large" onclick="triggerSOS()">
+              <div class="sos-pulse-ring"></div>
+              <div class="sos-pulse-ring" style="animation-delay:1s;"></div>
+              SOS
+            </button>
+            <p style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">Tap once to trigger immediate dispatch</p>
+          </div>
+
+          <!-- SOS countdown state -->
+          <div id="sos-countdown-state" style="display:none;padding:40px 0;">
+            <div style="font-size:62px;font-weight:900;color:var(--danger);font-family:'Outfit',sans-serif;" id="sos-timer">5</div>
+            <h3 style="font-size:20px;margin:16px 0 6px;">Initiating Security Dispatch</h3>
+            <p style="font-size:13px;color:var(--text-secondary);margin-bottom:30px;">Broadcasting location Section D, Row 14, Seat 06. Cancel if accidental trigger.</p>
+            <button class="btn btn-outline" onclick="cancelSOS()">Cancel Dispatch</button>
+          </div>
+
+          <!-- SOS active dispatch state -->
+          <div id="sos-dispatch-state" style="display:none;padding:30px;background:rgba(255,59,78,0.06);border:1px solid rgba(255,59,78,0.2);border-radius:var(--radius-lg);margin-top:20px;text-align:left;">
+            <div style="display:flex;justify-content:between;align-items:center;margin-bottom:16px;">
+              <span style="font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;color:var(--danger);">🚨 Responders Dispatched</span>
+              <span class="badge badge-danger">High Priority</span>
+            </div>
+            <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin-bottom:16px;">
+              First responder medical dispatch has accepted the ticket assignment. They are navigating to your seat coordinates.
+            </p>
+            <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;border-top:1px solid rgba(255,59,78,0.1);padding-top:16px;">
+              <div style="display:flex;justify-content:between;">
+                <span style="color:var(--text-muted);">Assigned Medic:</span>
+                <span style="font-weight:600;">Dr. Sarah Chen (Concourse D team)</span>
+              </div>
+              <div style="display:flex;justify-content:between;">
+                <span style="color:var(--text-muted);">Estimated Arrival:</span>
+                <span style="font-weight:600;color:var(--danger);" id="medic-eta">1 min 45 sec</span>
+              </div>
+              <div style="display:flex;justify-content:between;">
+                <span style="color:var(--text-muted);">Beacon Signal:</span>
+                <span style="font-weight:600;color:var(--success);">Active (Seat 06 beacon pulsing)</span>
+              </div>
+            </div>
+            <button class="btn btn-outline btn-sm w-full mt-6" onclick="cancelSOS()">Mark Resolved / Close</button>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <script>
+    // ── CONFIGURATION: HARDCODE YOUR API KEY HERE ──
+    const GEMINI_API_KEY = 'YOUR_API_KEY_HERE'; // Replace with your real Google AI Studio key
+    const GEMINI_MODEL_NAME = 'gemini-3.1-flash-lite'; // Stable model for chat concierge responses
+
+    // ── Tab switcher ───────────────────────────
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-view').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+
+      const targetView = document.getElementById('view-' + tabId);
+      if (targetView) targetView.classList.add('active');
+
+      const activeSidebarItem = document.querySelector(`.sidebar-item[data-tab="${tabId}"]`);
+      if (activeSidebarItem) activeSidebarItem.classList.add('active');
+
+      // Sync specific views
+      if (tabId === 'tickets') resetQRTimer();
+    }
+
+    // ── Mobile Sidebar Toggle ──────────────────
+    function toggleMobileSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      sidebar.classList.toggle('open');
+    }
+
+    // ── Live Game Clock ────────────────────────
+    const clockEl = document.getElementById('game-clock');
+    let seconds = 74 * 60 + 12;
+    setInterval(() => {
+      seconds++;
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      clockEl.textContent = `${m}:${s < 10 ? '0' : ''}${s}`;
+    }, 1000);
+
+    // ── AI Concierge Responses ──────────────────
+    const promptResponses = {
+      "Where is my seat, Section D Row 14 Seat 06?": "📍 Your seat is located in the **West Stand (Section D)**. \n\n1. From your current location, take the Level 1 concourse staircase next to **Gate D2**.\n2. Go up to aisle D-14.\n3. Row 14 is the middle tier row, Seat 06 is next to the aisle corridor.\n\n*A glowing path has been generated on the navigation tab.* 🗺️",
+      "Where is the nearest halal shawarma food stall?": "🥙 The nearest halal shawarma is **Al-Majd Kitchen** located directly at **Concourse Level 1, near Gate D2**.\n\n* Current queue time: **~3 minutes**.\n* Signature Wrap price: **$9.50**.\n\nYou can order directly from the *Fast Food tab* for instant counter pickup!",
+      "Show me the quickest exit route after the match": "🚶 **Post-Match Exit Advisory:** \n\n* **Primary Route:** Exit via South Concourse Tunnel directly to the Metro station plaza. Estimated clearing time: **8-10 minutes**.\n* **Congestion Alert:** Avoid Gate A (East Tunnel) as it is predicted to experience high exit volumes (~35% bottleneck surge).\n\nLet me know if you would like to pre-book a digital Metro boarding token. 🎫",
+      "How do I contact emergency medical first aid?": "🏥 **Emergency Medical Information:**\n\n* There is a fully equipped First Aid station on Level 1, near Section A (under the North scoreboard).\n* For immediate assistance, tap the **Emergency SOS** tab. It will route responders directly to your seat coordinates, emitting an active BLE locator beacon from your mobile device."
+    };
+
+    // Load Gemini API Key on start
+    window.addEventListener('DOMContentLoaded', () => {
+      if (GEMINI_API_KEY && GEMINI_API_KEY !== 'YOUR_API_KEY_HERE') {
+        document.getElementById('gemini-key-input').value = '••••••••••••••••';
+        document.getElementById('gemini-key-input').disabled = true;
+        document.getElementById('gemini-key-input').title = "API Key loaded from hardcoded config";
+        localStorage.setItem('gemini_api_key', GEMINI_API_KEY); // Sync to other portals
+      } else {
+        const storedKey = localStorage.getItem('gemini_api_key');
+        if (storedKey) {
+          document.getElementById('gemini-key-input').value = storedKey;
+        }
+      }
+    });
+
+    function saveGeminiKey() {
+      const keyVal = document.getElementById('gemini-key-input').value.trim();
+      if (keyVal) {
+        localStorage.setItem('gemini_api_key', keyVal);
+      } else {
+        localStorage.removeItem('gemini_api_key');
+      }
+    }
+
+    function sendQuickQuery(query) {
+      const inputBox = document.getElementById('chat-input-box');
+      inputBox.value = query;
+      submitChatMsg();
+    }
+
+    function formatMarkdown(text) {
+      if (!text) return '';
+      const escaped = text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+      return escaped
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/\n/g, '<br />');
+    }
+
+    function escapeHTML(str) {
+      if (!str) return '';
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    async function submitChatMsg() {
+      const inputBox = document.getElementById('chat-input-box');
+      const userText = inputBox.value.trim();
+      if (!userText) return;
+
+      const conversation = document.getElementById('chat-conversation');
+
+      // User Bubble
+      const userDiv = document.createElement('div');
+      userDiv.className = 'chat-msg user animate-fadeInUp';
+      userDiv.innerHTML = `<div class="chat-bubble">${escapeHTML(userText)}</div><div class="chat-time">Just now</div>`;
+      conversation.appendChild(userDiv);
+      conversation.scrollTop = conversation.scrollHeight;
+      inputBox.value = '';
+
+      // Typing Indicator
+      const typingDiv = document.createElement('div');
+      typingDiv.className = 'chat-msg bot';
+      typingDiv.innerHTML = `<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>`;
+      conversation.appendChild(typingDiv);
+      conversation.scrollTop = conversation.scrollHeight;
+
+      // Check if real API Key exists
+      let apiKey = null;
+      if (GEMINI_API_KEY && GEMINI_API_KEY !== 'YOUR_API_KEY_HERE') {
+        apiKey = GEMINI_API_KEY;
+      } else {
+        apiKey = localStorage.getItem('gemini_api_key');
+      }
+      if (apiKey) {
+        // Real Gemini API Flow
+        const langVal = document.getElementById('lang-select').value;
+        const systemText = `You are Nexus, the official FIFA World Cup 2026 Smart Stadium guide. You know everything about the Mercedes-Benz Stadium in Atlanta. You help fans find seats, concessions, restrooms, first aid, exit routes, match updates, and food queues. Keep answers helpful, concise (maximum 3-4 sentences), and related to stadium navigation. You must respond in the language code selected: ${langVal}. Feel free to use emojis.`;
+
+        try {
+          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL_NAME}:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: userText }] }],
+              systemInstruction: { parts: [{ text: systemText }] }
+            })
+          });
+
+          typingDiv.remove();
+
+          const botDiv = document.createElement('div');
+          botDiv.className = 'chat-msg bot animate-fadeInUp';
+
+          if (!response.ok) {
+            const errData = await response.json();
+            throw new Error(errData.error?.message || "Failed API call");
+          }
+
+          const data = await response.json();
+          let botResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response received.";
+          botDiv.innerHTML = `<div class="chat-bubble">${formatMarkdown(botResponse)}</div><div class="chat-time">Just now</div>`;
+          conversation.appendChild(botDiv);
+        } catch (err) {
+          typingDiv.remove();
+          const botDiv = document.createElement('div');
+          botDiv.className = 'chat-msg bot animate-fadeInUp';
+          botDiv.innerHTML = `<div class="chat-bubble" style="color:var(--danger);">⚠️ Gemini API Error: ${err.message}. Please verify your API key and connection.</div><div class="chat-time">Just now</div>`;
+          conversation.appendChild(botDiv);
+        }
+        conversation.scrollTop = conversation.scrollHeight;
+      } else {
+        // Fallback Mock Response Flow
+        setTimeout(() => {
+          typingDiv.remove();
+
+          const botDiv = document.createElement('div');
+          botDiv.className = 'chat-msg bot animate-fadeInUp';
+          let botResponse = "🔍 Checking stadium live logs... I understand your question, but that system link is currently in demo sandbox mode. Paste your Gemini API key in the field above to enable real-time AI responses! 💡";
+
+          for (let key in promptResponses) {
+            if (userText.toLowerCase().includes(key.toLowerCase()) || key.toLowerCase().includes(userText.toLowerCase())) {
+              botResponse = promptResponses[key];
+              break;
+            }
+          }
+
+          botDiv.innerHTML = `<div class="chat-bubble">${formatMarkdown(botResponse)}</div><div class="chat-time">Just now</div>`;
+          conversation.appendChild(botDiv);
+          conversation.scrollTop = conversation.scrollHeight;
+        }, 1200);
+      }
+    }
+
+    function clearChat() {
+      const conversation = document.getElementById('chat-conversation');
+      conversation.innerHTML = `<div class="chat-msg bot"><div class="chat-bubble">👋 Chat session cleared. I am ready to answer any new stadium questions.</div><div class="chat-time">Just now</div></div>`;
+    }
+
+    document.getElementById('chat-input-box').addEventListener('keydown', e => {
+      if (e.key === 'Enter') submitChatMsg();
+    });
+
+    // ── Smart Stadium Map Route Planning ──────────
+    function calculateRoute() {
+      const dest = document.getElementById('navigation-dest').value;
+      const routePath = document.getElementById('navigation-route');
+      const metrics = document.getElementById('route-metrics');
+      const walkTime = document.getElementById('walk-time-est');
+
+      if (dest === 'none') {
+        routePath.style.display = 'none';
+        metrics.style.display = 'none';
+        return;
+      }
+
+      routePath.style.display = 'block';
+      metrics.style.display = 'block';
+
+      if (dest === 'food') {
+        routePath.setAttribute('d', 'M 210 280 Q 220 300 240 320');
+        walkTime.textContent = '1 min 45 sec';
+      } else if (dest === 'washroom') {
+        routePath.setAttribute('d', 'M 210 280 Q 230 230 240 180');
+        walkTime.textContent = '1 min 10 sec';
+      } else if (dest === 'firstaid') {
+        routePath.setAttribute('d', 'M 210 280 Q 220 180 290 130 T 400 80');
+        walkTime.textContent = '4 min 12 sec';
+      }
+    }
+
+    function highlightMapSector(sector) {
+      document.querySelectorAll('.map-gate').forEach(el => el.classList.remove('active'));
+      const activeEl = document.getElementById('gate-sec-' + sector.toLowerCase());
+      if (activeEl) activeEl.classList.add('active');
+    }
+
+    function startNavigationGuide() {
+      const dest = document.getElementById('navigation-dest').value;
+      if (dest === 'none') {
+        alert('Please choose a valid concession or gate destination first.');
+        return;
+      }
+      alert('Audio GPS navigation mode initiated: "Head North along concourse aisle toward Section D restroom..."');
+    }
+
+    // ── Hologram Ticket Hover Effect ─────────────
+    const ticketCard = document.getElementById('ticket-card');
+    function handleTicketGlow(e) {
+      const rect = ticketCard.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      const px = (x / rect.width) * 100;
+      const py = (y / rect.height) * 100;
+
+      // Card Tilting
+      const rotY = ((x - rect.width / 2) / rect.width) * 10;
+      const rotX = -((y - rect.height / 2) / rect.height) * 10;
+
+      ticketCard.style.transform = `perspective(1000px) rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+      ticketCard.style.setProperty('--glow-x', `${px}%`);
+      ticketCard.style.setProperty('--glow-y', `${py}%`);
+    }
+
+    function resetTicketGlow() {
+      ticketCard.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg)';
+    }
+
+    // Dynamic Ticket QR Code regenerator
+    let qrTimeLeft = 10;
+    let qrTimerInterval;
+    function resetQRTimer() {
+      clearInterval(qrTimerInterval);
+      qrTimeLeft = 10;
+      const timerLabel = document.getElementById('qr-timer-seconds');
+      const timerLine = document.getElementById('qr-timer-line');
+
+      timerLabel.textContent = qrTimeLeft;
+      timerLine.style.width = '100%';
+
+      qrTimerInterval = setInterval(() => {
+        qrTimeLeft--;
+        timerLabel.textContent = qrTimeLeft;
+        timerLine.style.width = (qrTimeLeft * 10) + '%';
+
+        if (qrTimeLeft <= 0) {
+          qrTimeLeft = 10;
+          timerLine.style.width = '100%';
+          // Simulating QR code change blink
+          const qrSvg = document.querySelector('.qr-container svg');
+          qrSvg.style.opacity = '0.3';
+          setTimeout(() => { qrSvg.style.opacity = '1'; }, 150);
+        }
+      }, 1000);
+    }
+    resetQRTimer();
+
+    // ── Fast Food Ordering ────────────────────────
+    let cart = [];
+    function addFoodOrder(name, price) {
+      cart.push({ name, price });
+      updateBasket();
+    }
+
+    function updateBasket() {
+      const basket = document.getElementById('basket-content');
+      const totalEl = document.getElementById('basket-total');
+      if (cart.length === 0) {
+        basket.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding-top:40px;font-size:13px;">Basket is currently empty</div>';
+        totalEl.textContent = '$0.00';
+        return;
+      }
+
+      basket.innerHTML = '';
+      let total = 0;
+      cart.forEach((item, index) => {
+        total += item.price;
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'flex justify-between items-center';
+        itemDiv.style.background = 'rgba(255,255,255,0.02)';
+        itemDiv.style.padding = '8px 12px';
+        itemDiv.style.borderRadius = '6px';
+        itemDiv.innerHTML = `
+          <div>
+            <div style="font-size:13px;font-weight:600;">${item.name}</div>
+            <div style="font-size:11px;color:var(--text-muted);">$${item.price.toFixed(2)}</div>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="removeBasketItem(${index})" style="color:var(--danger);padding:2px 8px;">✕</button>
+        `;
+        basket.appendChild(itemDiv);
+      });
+      totalEl.textContent = '$' + total.toFixed(2);
+    }
+
+    function removeBasketItem(idx) {
+      cart.splice(idx, 1);
+      updateBasket();
+    }
+
+    function submitFoodOrder() {
+      if (cart.length === 0) {
+        alert('Your basket is empty. Please select food items first.');
+        return;
+      }
+
+      document.getElementById('food-checkout-card').style.display = 'none';
+      const tracker = document.getElementById('food-tracker-card');
+      tracker.style.display = 'flex';
+
+      // Simulating real-time preparation steps
+      let progress = 25;
+      const fillBar = document.getElementById('food-tracker-progress');
+      const statusBadge = document.getElementById('food-status-badge');
+
+      setTimeout(() => {
+        progress = 65;
+        fillBar.style.width = '65%';
+        document.getElementById('status-step-2').textContent = 'Complete';
+        document.getElementById('status-step-2').style.color = 'var(--success)';
+        document.getElementById('status-step-3').textContent = 'Active (Ready soon)';
+        document.getElementById('status-step-3').style.color = 'var(--warning)';
+        document.getElementById('track-step-3').style.color = 'var(--text-secondary)';
+      }, 5000);
+
+      setTimeout(() => {
+        progress = 100;
+        fillBar.style.width = '100%';
+        statusBadge.textContent = 'Ready';
+        statusBadge.className = 'badge badge-success';
+        document.getElementById('status-step-3').textContent = 'READY FOR PICKUP';
+        document.getElementById('status-step-3').style.color = 'var(--success)';
+        document.getElementById('label-step-2').textContent = '✓ 2. Cooked & Prepared';
+        alert('Fast Food Order Ready! Head to Gate D2 Concessions Counter 4. Show Pickup Token #73A.');
+      }, 10000);
+    }
+
+    // ── Emergency SOS System ──────────────────────
+    let sosTimerVal = 5;
+    let sosTimerInterval;
+
+    function triggerSOS() {
+      document.getElementById('sos-trigger-state').style.display = 'none';
+      document.getElementById('sos-countdown-state').style.display = 'block';
+
+      sosTimerVal = 5;
+      const label = document.getElementById('sos-timer');
+      label.textContent = sosTimerVal;
+
+      sosTimerInterval = setInterval(() => {
+        sosTimerVal--;
+        label.textContent = sosTimerVal;
+        if (sosTimerVal <= 0) {
+          clearInterval(sosTimerInterval);
+          initiateSOSDispatch();
+        }
+      }, 1000);
+    }
+
+    function cancelSOS() {
+      clearInterval(sosTimerInterval);
+      document.getElementById('sos-countdown-state').style.display = 'none';
+      document.getElementById('sos-dispatch-state').style.display = 'none';
+      document.getElementById('sos-trigger-state').style.display = 'block';
+    }
+
+    function initiateSOSDispatch() {
+      document.getElementById('sos-countdown-state').style.display = 'none';
+      document.getElementById('sos-dispatch-state').style.display = 'block';
+
+      // Simulating timer ETA decrement
+      let etaSeconds = 105; // 1 min 45 sec
+      const etaLabel = document.getElementById('medic-eta');
+
+      const etaInterval = setInterval(() => {
+        etaSeconds--;
+        const m = Math.floor(etaSeconds / 60);
+        const s = etaSeconds % 60;
+        etaLabel.textContent = `${m} min ${s < 10 ? '0' : ''}${s} sec`;
+
+        if (etaSeconds <= 0) {
+          clearInterval(etaInterval);
+          etaLabel.textContent = 'ARRIVED (Arriving Section D Row 14)';
+        }
+      }, 1000);
+    }
+  </script>
+</body>
+</html>

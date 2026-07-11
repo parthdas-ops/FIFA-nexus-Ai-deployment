@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FIFA Nexus — Admin Command Center</title>
+  <script>
+    (function() {
+      const userStr = sessionStorage.getItem('nexus_user');
+      if (!userStr) {
+        alert('Access Denied: Please log in first.');
+        window.location.href = 'auth.html';
+        return;
+      }
+      try {
+        const user = JSON.parse(userStr);
+        if (user.role !== 'admin') {
+          alert('Access Denied: You do not have permission to view the Admin Command Center.');
+          window.location.href = 'auth.html';
+        }
+      } catch (e) {
+        window.location.href = 'auth.html';
+      }
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/shared.css" />
+  <style>
+    /* Admin specific styling */
+    .admin-bg-glow {
+      position: fixed;
+      top: -20%; left: -20%; width: 50%; height: 50%;
+      background: radial-gradient(circle, rgba(10, 132, 255, 0.08) 0%, transparent 70%);
+      filter: blur(80px); pointer-events: none; z-index: -1;
+    }
+
+    /* Tab navigation views */
+    .tab-view {
+      display: none;
+    }
+    .tab-view.active {
+      display: block;
+      animation: fadeInUp 0.4s ease forwards;
+    }
+
+    /* Heatmap SVG */
+    .heatmap-svg {
+      width: 100%;
+      max-height: 480px;
+      background: #070c16;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+    }
+    .heatmap-zone {
+      transition: fill 0.8s ease, opacity 0.8s ease;
+      cursor: pointer;
+    }
+
+    /* CCTV grid screen layouts */
+    .cctv-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+    .cctv-screen {
+      background: #000;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      position: relative;
+      aspect-ratio: 16/9;
+      overflow: hidden;
+    }
+    .cctv-video-mock {
+      width: 100%; height: 100%;
+      background: linear-gradient(180deg, #090e1a 0%, #03060c 100%);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    /* CRT Scan Line effect */
+    .cctv-scanline {
+      position: absolute; inset: 0;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+      background-size: 100% 4px, 6px 100%;
+      pointer-events: none;
+      z-index: 10;
+    }
+    .cctv-timestamp {
+      position: absolute; top: 12px; left: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: rgba(255,255,255,0.6);
+      background: rgba(0,0,0,0.5); padding: 2px 6px; border-radius: 4px;
+      z-index: 5;
+    }
+    .cctv-label {
+      position: absolute; bottom: 12px; left: 12px;
+      font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 700;
+      background: rgba(0,0,0,0.5); padding: 2px 8px; border-radius: 4px;
+      display: flex; align-items: center; gap: 6px;
+      z-index: 5;
+    }
+    .cctv-overlay-box {
+      position: absolute;
+      border: 2px solid var(--primary);
+      border-radius: 4px;
+      background: rgba(0, 229, 204, 0.05);
+      z-index: 4;
+      display: flex;
+      flex-direction: column;
+      pointer-events: none;
+    }
+    .cctv-overlay-box.warning {
+      border-color: var(--warning);
+      background: rgba(255, 149, 0, 0.05);
+    }
+    .cctv-overlay-box.danger {
+      border-color: var(--danger);
+      background: rgba(255, 59, 78, 0.05);
+      animation: alertBlink 1s infinite alternate;
+    }
+    @keyframes alertBlink {
+      from { border-color: var(--danger); }
+      to { border-color: transparent; }
+    }
+    .cctv-overlay-text {
+      background: var(--primary);
+      color: #000; font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; font-weight: 700; padding: 1px 4px;
+      align-self: flex-start;
+    }
+    .cctv-overlay-box.warning .cctv-overlay-text { background: var(--warning); }
+    .cctv-overlay-box.danger .cctv-overlay-text { background: var(--danger); color: #fff; }
+
+    /* Static noise simulator overlay for camera feeds */
+    .cctv-noise {
+      position: absolute; inset: 0;
+      background-image: radial-gradient(circle, rgba(255,255,255,0.15) 1px, transparent 1px);
+      background-size: 3px 3px;
+      opacity: 0.15;
+      pointer-events: none;
+      animation: noiseMove 0.2s infinite;
+    }
+    @keyframes noiseMove {
+      0% { transform: translate(0, 0); }
+      50% { transform: translate(-1px, 1px); }
+      100% { transform: translate(1px, -1px); }
+    }
+
+    /* Slider styling */
+    .time-slider {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: var(--radius-full);
+      background: var(--bg-elevated);
+      outline: none;
+      margin: 16px 0;
+    }
+    .time-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--primary);
+      cursor: pointer;
+      box-shadow: 0 0 10px var(--primary);
+      transition: transform 0.1s;
+    }
+    .time-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    /* Dial gauge layout */
+    .gauge-container {
+      position: relative;
+      width: 120px;
+      height: 120px;
+      margin: 0 auto 12px;
+    }
+    .gauge-svg {
+      width: 120px;
+      height: 120px;
+    }
+    .gauge-track {
+      fill: none;
+      stroke: var(--bg-elevated);
+      stroke-width: 8;
+    }
+    .gauge-fill {
+      fill: none;
+      stroke-width: 8;
+      stroke-linecap: round;
+      stroke-dasharray: 251.2;
+      stroke-dashoffset: 251.2;
+      transition: stroke-dashoffset 0.8s ease;
+    }
+    .gauge-value-label {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      font-family: 'Outfit', sans-serif;
+      font-size: 20px; font-weight: 800;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="admin-bg-glow"></div>
+
+  <!-- COLLAPSIBLE SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon" style="background: none; box-shadow: none; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; flex-shrink: 0;">
+        <svg viewBox="0 0 100 100" width="34" height="34" style="filter: drop-shadow(0 0 4px rgba(0, 229, 204, 0.4));">
+          <polygon points="50,12 85,32 85,68 50,88 15,68 15,32" fill="none" stroke="#00E5CC" stroke-width="6" stroke-linejoin="round" />
+          <circle cx="50" cy="30" r="7" fill="#FFF" />
+          <circle cx="33" cy="53" r="6" fill="#00E5CC" />
+          <circle cx="67" cy="53" r="6" fill="#00E5CC" />
+          <circle cx="50" cy="70" r="7" fill="#0080FF" />
+          <line x1="50" y1="30" x2="33" y2="53" stroke="rgba(255,255,255,0.4)" stroke-width="3.5" />
+          <line x1="50" y1="30" x2="67" y2="53" stroke="rgba(255,255,255,0.4)" stroke-width="3.5" />
+          <line x1="33" y1="53" x2="50" y2="70" stroke="rgba(255,255,255,0.4)" stroke-width="3.5" />
+          <line x1="67" y1="53" x2="50" y2="70" stroke="rgba(255,255,255,0.4)" stroke-width="3.5" />
+          <circle cx="50" cy="50" r="8" fill="#00E5CC" />
+        </svg>
+      </div>
+      <div>
+        <div class="logo-text">FIFA Nexus OS</div>
+        <div class="logo-sub">Command Center</div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Operations Control</div>
+      <button class="sidebar-item active" data-tab="dashboard" onclick="switchTab('dashboard')">
+        <span class="item-icon">📊</span> Operations Console
+      </button>
+      <button class="sidebar-item" data-tab="heatmap" onclick="switchTab('heatmap')">
+        <span class="item-icon">🔥</span> Live Crowd Heatmap
+      </button>
+      <button class="sidebar-item" data-tab="security" onclick="switchTab('security')">
+        <span class="item-icon">👁️</span> CCTV & Security AI
+      </button>
+      <button class="sidebar-item" data-tab="sustainability" onclick="switchTab('sustainability')">
+        <span class="item-icon">🌱</span> ESG & Sustainability
+      </button>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Active Alerts</div>
+      <div style="background:rgba(255,59,78,0.06);border:1px solid rgba(255,59,78,0.15);padding:10px;border-radius:8px;margin:0 8px;">
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--danger);text-transform:uppercase;">
+          <span class="status-dot danger"></span> SOS Alert Triggered
+        </div>
+        <p style="font-size:11px;color:var(--text-secondary);margin-top:4px;">Medical responder accepted assignment Section D, Row 14.</p>
+      </div>
+    </div>
+
+    <div class="sidebar-section" style="margin-top:auto;">
+      <div style="border-top:1px solid var(--border); padding-top:16px; margin:0 8px;">
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:var(--radius-md);background:rgba(255,255,255,0.03);">
+          <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--info),var(--primary));display:flex;align-items:center;justify-content:center;font-size:16px;">🛡️</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;">Commander HQ</div>
+            <div style="font-size:10px;color:var(--text-muted);">Root Operator</div>
+          </div>
+        </div>
+        <a href="auth.html" onclick="sessionStorage.removeItem('nexus_user');" class="sidebar-item" style="margin-top:10px; color:var(--danger);">
+          <span class="item-icon">🚪</span> Sign Out
+        </a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- HEADER -->
+  <header class="header">
+    <button class="btn btn-outline btn-icon" id="menu-toggle" style="display:none;" onclick="toggleMobileSidebar()">☰</button>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="status-dot live"></span>
+      <span style="font-size:13px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;">STADIUM LIVE CONNECTIVITY</span>
+      <span style="background:var(--success-dim);color:var(--success);padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;">99.9% ONLINE</span>
+    </div>
+
+    <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
+      <div style="text-align:right;" class="hidden-mobile">
+        <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;">CCTV Streams</div>
+        <div style="font-size:12px;font-weight:600;color:var(--success);">48/48 Feeds Processing</div>
+      </div>
+      <div style="width:1px;height:24px;background:var(--border);" class="hidden-mobile"></div>
+      <button class="btn btn-danger btn-sm" onclick="triggerTestAlarm()">🚨 Trigger Test Alert</button>
+    </div>
+  </header>
+
+  <!-- MAIN LAYOUT -->
+  <main class="main-layout">
+    <div class="page-content">
+
+      <!-- ========================================================
+           TAB 1: OPERATIONS CONSOLE
+           ======================================================== -->
+      <section class="tab-view active" id="view-dashboard">
+        <div style="display:flex;justify-content:between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:16px;">
+          <div>
+            <h1 style="font-size:28px;margin-bottom:4px;">Operations Dashboard</h1>
+            <p style="font-size:14px;color:var(--text-secondary);">Real-time metrics processing at Mercedes-Benz Stadium</p>
+          </div>
+          <div style="display:flex;gap:10px;">
+            <span class="badge badge-primary">Match 42 Command</span>
+            <span class="badge badge-success">Live Mode</span>
+          </div>
+        </div>
+
+        <div class="grid-cols-4">
+          <!-- Metric Card 1 -->
+          <div class="glass-card metric-card">
+            <div class="metric-icon" style="background:var(--primary-dim);color:var(--primary);">👥</div>
+            <div class="metric-value" id="fan-count-live">64,847</div>
+            <div class="metric-label">Fans Inside Arena</div>
+            <div class="metric-change up">↑ 42 in last 2m</div>
+          </div>
+
+          <!-- Metric Card 2 -->
+          <div class="glass-card metric-card">
+            <div class="metric-icon" style="background:var(--accent-dim);color:var(--accent);">🎫</div>
+            <div class="metric-value">98.7%</div>
+            <div class="metric-label">Gates Validation Rate</div>
+            <div class="metric-change up">↑ 0.4% Target Efficiency</div>
+          </div>
+
+          <!-- Metric Card 3 -->
+          <div class="glass-card metric-card">
+            <div class="metric-icon" style="background:var(--danger-dim);color:var(--danger);">⚠️</div>
+            <div class="metric-value" id="alert-counter-live">1</div>
+            <div class="metric-label">Active Dispatches</div>
+            <div class="metric-change down">↓ Resolved 4 warnings</div>
+          </div>
+
+          <!-- Metric Card 4 -->
+          <div class="glass-card metric-card">
+            <div class="metric-icon" style="background:var(--info-dim);color:var(--info);">🌱</div>
+            <div class="metric-value">84.2%</div>
+            <div class="metric-label">ESG Waste Recovery</div>
+            <div class="metric-change up">↑ 1.2% recycling peak</div>
+          </div>
+        </div>
+
+        <!-- Live Operations Feed & Core Status Logs -->
+        <div class="grid-cols-3 mt-6">
+          <!-- Live Alerts Queue -->
+          <div class="glass-card p-6" style="grid-column: span 2;">
+            <span class="section-title mb-4">Operations Command Stream</span>
+            <div style="display:flex;flex-direction:column;gap:12px;margin-top:20px;" id="ops-log-feed">
+              <div style="display:flex;align-items:start;gap:12px;background:rgba(255,59,78,0.05);border:1px solid rgba(255,59,78,0.1);padding:12px;border-radius:8px;">
+                <span style="font-size:18px;">🚨</span>
+                <div style="flex-1;">
+                  <div style="display:flex;justify-content:between;font-weight:700;font-size:13px;color:var(--danger);">
+                    <span>Emergency SOS Dispatched</span>
+                    <span>20:42:15</span>
+                  </div>
+                  <p style="font-size:12px;color:var(--text-secondary);margin-top:2px;">Medic squad assigned to Section D, Row 14, Seat 06. Active locator beacon confirmed.</p>
+                </div>
+              </div>
+
+              <div style="display:flex;align-items:start;gap:12px;background:rgba(255,149,0,0.05);border:1px solid rgba(255,149,0,0.1);padding:12px;border-radius:8px;">
+                <span style="font-size:18px;">⚠️</span>
+                <div style="flex-1;">
+                  <div style="display:flex;justify-content:between;font-weight:700;font-size:13px;color:var(--warning);">
+                    <span>Concourse Bottleneck Warning</span>
+                    <span>20:39:10</span>
+                  </div>
+                  <p style="font-size:12px;color:var(--text-secondary);margin-top:2px;">Gate B exit tunnel is experiencing dense crowd flow. AI recommends updating fan exit notices.</p>
+                </div>
+              </div>
+
+              <div style="display:flex;align-items:start;gap:12px;background:rgba(255,255,255,0.02);border:1px solid var(--border);padding:12px;border-radius:8px;">
+                <span style="font-size:18px;">🛡️</span>
+                <div style="flex-1;">
+                  <div style="display:flex;justify-content:between;font-weight:700;font-size:13px;color:var(--text-primary);">
+                    <span>Ticket Verification Match 42</span>
+                    <span>20:37:04</span>
+                  </div>
+                  <p style="font-size:12px;color:var(--text-secondary);margin-top:2px;">Dynamic passkey handshake validated. Fraud checks logged 0 cloning signatures.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Actions & Status -->
+          <div class="glass-card p-6 flex flex-col justify-between">
+            <div>
+              <span class="section-title mb-4">Command Center Control</span>
+              <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin-top:12px;">
+                Quickly toggle stadium notification displays, dispatch personnel, or alter routing advisories.
+              </p>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px;margin-top:20px;">
+              <button class="btn btn-primary w-full" onclick="alert('Digital twins synced. Pushing Exit Route Advisory notices to fan companion apps.')">Advisory Broadcast</button>
+              <button class="btn btn-outline w-full" onclick="alert('Radio link initiated: Dispatching crew to Gate B to relieve line.')">Dispatch Concourse Marshall</button>
+              <button class="btn btn-outline w-full" onclick="alert('Halal food concessions queue timer sync verified.')">Refresh Queue Metrics</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================
+           TAB 2: LIVE CROWD HEATMAP
+           ======================================================== -->
+      <section class="tab-view" id="view-heatmap">
+        <div class="grid-cols-3">
+          <div class="glass-card p-6" style="grid-column: span 2;">
+            <div style="display:flex;justify-content:between;align-items:center;margin-bottom:16px;">
+              <span class="section-title">Crowd Density Matrix</span>
+              <span class="badge badge-primary" id="time-prediction-label">LIVE STATUS</span>
+            </div>
+
+            <!-- Heatmap SVG layout -->
+            <svg class="heatmap-svg" viewBox="0 0 800 500" id="heatmap-svg-element">
+              <defs>
+                <pattern id="heatmap-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                  <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.02)" stroke-width="1"/>
+                </pattern>
+                <radialGradient id="grad-low" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stop-color="rgba(0, 229, 204, 0.4)" />
+                  <stop offset="100%" stop-color="rgba(0, 229, 204, 0.05)" />
+                </radialGradient>
+                <radialGradient id="grad-med" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stop-color="rgba(255, 215, 0, 0.5)" />
+                  <stop offset="100%" stop-color="rgba(255, 215, 0, 0.05)" />
+                </radialGradient>
+                <radialGradient id="grad-high" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stop-color="rgba(255, 59, 78, 0.6)" />
+                  <stop offset="100%" stop-color="rgba(255, 59, 78, 0.05)" />
+                </radialGradient>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#heatmap-grid)" />
+
+              <!-- Outer Stadium Ring -->
+              <ellipse cx="400" cy="250" rx="350" ry="210" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="8" />
+
+              <!-- Pitch -->
+              <rect x="280" y="160" width="240" height="180" fill="#0c2514" stroke="rgba(255,255,255,0.2)" stroke-width="2" rx="4" />
+              <circle cx="400" cy="250" r="40" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2" />
+
+              <!-- Sectors -->
+              <!-- North Stand Section A -->
+              <path d="M 250 80 Q 400 30 550 80 L 510 130 Q 400 95 290 130 Z" class="heatmap-zone" id="hm-sec-a" fill="url(#grad-low)" />
+              <!-- East Stand Section B -->
+              <path d="M 570 100 Q 730 250 570 400 L 520 350 Q 640 250 520 150 Z" class="heatmap-zone" id="hm-sec-b" fill="url(#grad-high)" />
+              <!-- South Stand Section C -->
+              <path d="M 250 420 Q 400 470 550 420 L 510 370 Q 400 405 290 370 Z" class="heatmap-zone" id="hm-sec-c" fill="url(#grad-low)" />
+              <!-- West Stand Section D -->
+              <path d="M 230 100 Q 70 250 230 400 L 280 350 Q 160 250 280 150 Z" class="heatmap-zone" id="hm-sec-d" fill="url(#grad-med)" />
+            </svg>
+          </div>
+
+          <!-- Heatmap parameters -->
+          <div class="glass-card p-6 flex flex-col justify-between">
+            <div>
+              <span class="section-title mb-4">Simulation Timeline</span>
+              <p style="font-size:13px;color:var(--text-secondary);margin-top:12px;line-height:1.6;">
+                Use the predictive slider to forecast stadium crowd flow bottlenecks.
+              </p>
+
+              <input class="time-slider" type="range" min="0" max="3" step="1" id="heatmap-time-slider" value="0" onchange="simulateHeatmapShift()" />
+
+              <div style="display:flex;justify-content:between;font-size:12px;font-weight:700;color:var(--text-secondary);">
+                <span>Now</span>
+                <span>+15m</span>
+                <span>+30m</span>
+                <span>Post-Match</span>
+              </div>
+
+              <!-- Zone breakdown table -->
+              <div style="border-top:1px solid var(--border);margin-top:24px;padding-top:16px;">
+                <span style="font-size:12px;text-transform:uppercase;color:var(--text-muted);font-weight:600;letter-spacing:1px;display:block;margin-bottom:12px;">Sector Load Statistics</span>
+                <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;">
+                  <div style="display:flex;justify-content:between;">
+                    <span>Section A (North):</span>
+                    <span style="color:var(--success);font-weight:700;" id="hm-val-a">38% (Normal)</span>
+                  </div>
+                  <div style="display:flex;justify-content:between;">
+                    <span>Section B (East):</span>
+                    <span style="color:var(--danger);font-weight:700;" id="hm-val-b">88% (Bottle-Neck)</span>
+                  </div>
+                  <div style="display:flex;justify-content:between;">
+                    <span>Section C (South):</span>
+                    <span style="color:var(--success);font-weight:700;" id="hm-val-c">42% (Normal)</span>
+                  </div>
+                  <div style="display:flex;justify-content:between;">
+                    <span>Section D (West):</span>
+                    <span style="color:var(--warning);font-weight:700;" id="hm-val-d">64% (Dense)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <button class="btn btn-primary w-full" onclick="alert('Heatmap logs compiled. Downloaded SVG matrix schema file.')">Download Matrix Schema</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================
+           TAB 3: CCTV & SECURITY AI
+           ======================================================== -->
+      <section class="tab-view" id="view-security">
+        <div class="grid-cols-3">
+          <!-- CCTV Grid -->
+          <div class="cctv-grid" style="grid-column: span 2;">
+            <!-- Screen 1 -->
+            <div class="cctv-screen">
+              <div class="cctv-scanline"></div>
+              <div class="cctv-noise"></div>
+              <div class="cctv-timestamp">CAM_GATE_A1 · 20:42:15</div>
+              <div class="cctv-video-mock">
+                <!-- Outer entry gate contour mock -->
+                <rect x="0" y="0" width="100%" height="100%" fill="none" />
+                <div class="cctv-overlay-box" style="top:25%; left:30%; width:100px; height:80px;">
+                  <div class="cctv-overlay-text">CROWD: 82</div>
+                </div>
+              </div>
+              <div class="cctv-label">
+                <span class="status-dot live"></span> Gate A Entry (Outer)
+              </div>
+            </div>
+            <!-- Screen 2 -->
+            <div class="cctv-screen">
+              <div class="cctv-scanline"></div>
+              <div class="cctv-noise"></div>
+              <div class="cctv-timestamp">CAM_SEC_D14 · 20:42:15</div>
+              <div class="cctv-video-mock">
+                <!-- Target alert box -->
+                <div class="cctv-overlay-box danger" style="top:35%; left:45%; width:90px; height:70px;">
+                  <div class="cctv-overlay-text">FALL DETECTED</div>
+                </div>
+              </div>
+              <div class="cctv-label">
+                <span class="status-dot danger"></span> Section D row 14
+              </div>
+            </div>
+            <!-- Screen 3 -->
+            <div class="cctv-screen">
+              <div class="cctv-scanline"></div>
+              <div class="cctv-noise"></div>
+              <div class="cctv-timestamp">CAM_TUN_SOUTH · 20:42:15</div>
+              <div class="cctv-video-mock">
+                <div class="cctv-overlay-box" style="top:40%; left:20%; width:120px; height:90px;">
+                  <div class="cctv-overlay-text">FLOW RATE: PASS</div>
+                </div>
+              </div>
+              <div class="cctv-label">
+                <span class="status-dot live"></span> South Tunnel Exit
+              </div>
+            </div>
+            <!-- Screen 4 -->
+            <div class="cctv-screen">
+              <div class="cctv-scanline"></div>
+              <div class="cctv-noise"></div>
+              <div class="cctv-timestamp">CAM_CONF_D2 · 20:42:15</div>
+              <div class="cctv-video-mock">
+                <div class="cctv-overlay-box warning" style="top:30%; left:40%; width:80px; height:60px;">
+                  <div class="cctv-overlay-text">QUEUE: 3 MIN</div>
+                </div>
+              </div>
+              <div class="cctv-label">
+                <span class="status-dot live"></span> Concessions D2 Area
+              </div>
+            </div>
+          </div>
+
+          <!-- CCTV Controls -->
+          <div class="glass-card p-6 flex flex-col justify-between">
+            <div>
+              <span class="section-title mb-4">CCTV AI Controls</span>
+              <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin-top:12px;">
+                CCTV security modules are running smart inference engines to detect falls, smoke/fire, fights, and queue counts.
+              </p>
+
+              <div style="border-top:1px solid var(--border);margin-top:20px;padding-top:16px;display:flex;flex-direction:column;gap:12px;">
+                <label style="display:flex;justify-content:between;align-items:center;font-size:13px;cursor:pointer;">
+                  <span>Fall Detection Model</span>
+                  <input type="checkbox" checked style="accent-color:var(--primary);" />
+                </label>
+                <label style="display:flex;justify-content:between;align-items:center;font-size:13px;cursor:pointer;">
+                  <span>Smoke / Fire Detection</span>
+                  <input type="checkbox" checked style="accent-color:var(--primary);" />
+                </label>
+                <label style="display:flex;justify-content:between;align-items:center;font-size:13px;cursor:pointer;">
+                  <span>Abandoned Objects AI</span>
+                  <input type="checkbox" checked style="accent-color:var(--primary);" />
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <button class="btn btn-outline w-full" onclick="alert('Camera calibration handshake complete. Resynchronizing 48 lens captures.')">Recalibrating Cameras</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================
+           TAB 4: ESG & SUSTAINABILITY
+           ======================================================== -->
+      <section class="tab-view" id="view-sustainability">
+        <div class="grid-cols-4">
+          <!-- Dial Gauge 1 -->
+          <div class="glass-card p-6 text-center">
+            <div class="gauge-container">
+              <svg class="gauge-svg">
+                <circle cx="60" cy="60" r="40" class="gauge-track" />
+                <circle cx="60" cy="60" r="40" class="gauge-fill" style="stroke: var(--success); stroke-dashoffset: 75.36;" /> <!-- 70% fill -->
+              </svg>
+              <div class="gauge-value-label">
+                <span style="color:var(--success);">70%</span>
+                <span style="font-size:10px;color:var(--text-muted);font-weight:400;">Renewable</span>
+              </div>
+            </div>
+            <h4 style="font-size:15px;margin-bottom:4px;">Energy Resource Grid</h4>
+            <p style="font-size:11px;color:var(--text-secondary);">Stadium solar roof active</p>
+          </div>
+
+          <!-- Dial Gauge 2 -->
+          <div class="glass-card p-6 text-center">
+            <div class="gauge-container">
+              <svg class="gauge-svg">
+                <circle cx="60" cy="60" r="40" class="gauge-track" />
+                <circle cx="60" cy="60" r="40" class="gauge-fill" style="stroke: var(--primary); stroke-dashoffset: 37.68;" /> <!-- 85% fill -->
+              </svg>
+              <div class="gauge-value-label">
+                <span style="color:var(--primary);">85%</span>
+                <span style="font-size:10px;color:var(--text-muted);font-weight:400;">Recycled</span>
+              </div>
+            </div>
+            <h4 style="font-size:15px;margin-bottom:4px;">Water Recovery</h4>
+            <p style="font-size:11px;color:var(--text-secondary);">Greywater retention loops</p>
+          </div>
+
+          <!-- Dial Gauge 3 -->
+          <div class="glass-card p-6 text-center">
+            <div class="gauge-container">
+              <svg class="gauge-svg">
+                <circle cx="60" cy="60" r="40" class="gauge-track" />
+                <circle cx="60" cy="60" r="40" class="gauge-fill" style="stroke: var(--accent); stroke-dashoffset: 125.6;" /> <!-- 50% fill -->
+              </svg>
+              <div class="gauge-value-label">
+                <span style="color:var(--accent);">50%</span>
+                <span style="font-size:10px;color:var(--text-muted);font-weight:400;">Compost</span>
+              </div>
+            </div>
+            <h4 style="font-size:15px;margin-bottom:4px;">Waste Diversion</h4>
+            <p style="font-size:11px;color:var(--text-secondary);">Zero-plastics vendors active</p>
+          </div>
+
+          <!-- Dial Gauge 4 -->
+          <div class="glass-card p-6 text-center">
+            <div class="gauge-container">
+              <svg class="gauge-svg">
+                <circle cx="60" cy="60" r="40" class="gauge-track" />
+                <circle cx="60" cy="60" r="40" class="gauge-fill" style="stroke: var(--danger); stroke-dashoffset: 188.4;" /> <!-- 25% fill -->
+              </svg>
+              <div class="gauge-value-label">
+                <span style="color:var(--danger);">25%</span>
+                <span style="font-size:10px;color:var(--text-muted);font-weight:400;">Offset</span>
+              </div>
+            </div>
+            <h4 style="font-size:15px;margin-bottom:4px;">Carbon Target CO2</h4>
+            <p style="font-size:11px;color:var(--text-secondary);">Certified credits balanced</p>
+          </div>
+        </div>
+
+        <!-- ESG Detail Stats Summary -->
+        <div class="glass-card p-6 mt-6">
+          <span class="section-title mb-4">Carbon Neutrality Tracker</span>
+          <div class="progress-bar mt-4">
+            <div class="progress-fill success" style="width: 80%;"></div>
+          </div>
+          <div style="display:flex;justify-content:between;font-size:11px;color:var(--text-muted);margin-top:8px;">
+            <span>Current emissions: 12.4 Tonnes CO2 (Goal: 10.0 max target)</span>
+            <span>80% toward target goal carbon neutral</span>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <script>
+    // ── Tab switcher ───────────────────────────
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-view').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+
+      const targetView = document.getElementById('view-' + tabId);
+      if (targetView) targetView.classList.add('active');
+
+      const activeSidebarItem = document.querySelector(`.sidebar-item[data-tab="${tabId}"]`);
+      if (activeSidebarItem) activeSidebarItem.classList.add('active');
+    }
+
+    // ── Mobile Sidebar Toggle ──────────────────
+    function toggleMobileSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      sidebar.classList.toggle('open');
+    }
+
+    // ── Live Fan Count Increments ──────────────
+    const liveFansEl = document.getElementById('fan-count-live');
+    let fans = 64847;
+    setInterval(() => {
+      fans += Math.floor(Math.random() * 8) - 3;
+      fans = Math.max(64000, Math.min(65000, fans));
+      liveFansEl.textContent = fans.toLocaleString();
+    }, 3000);
+
+    // ── Simulate Heatmap Shifts ────────────────
+    function simulateHeatmapShift() {
+      const sliderVal = document.getElementById('heatmap-time-slider').value;
+      const label = document.getElementById('time-prediction-label');
+
+      const zoneA = document.getElementById('hm-sec-a');
+      const zoneB = document.getElementById('hm-sec-b');
+      const zoneC = document.getElementById('hm-sec-c');
+      const zoneD = document.getElementById('hm-sec-d');
+
+      const valA = document.getElementById('hm-val-a');
+      const valB = document.getElementById('hm-val-b');
+      const valC = document.getElementById('hm-val-c');
+      const valD = document.getElementById('hm-val-d');
+
+      if (sliderVal === '0') {
+        label.textContent = 'LIVE STATUS';
+        zoneA.setAttribute('fill', 'url(#grad-low)');
+        zoneB.setAttribute('fill', 'url(#grad-high)');
+        zoneC.setAttribute('fill', 'url(#grad-low)');
+        zoneD.setAttribute('fill', 'url(#grad-med)');
+
+        valA.textContent = '38% (Normal)'; valA.style.color = 'var(--success)';
+        valB.textContent = '88% (Bottle-Neck)'; valB.style.color = 'var(--danger)';
+        valC.textContent = '42% (Normal)'; valC.style.color = 'var(--success)';
+        valD.textContent = '64% (Dense)'; valD.style.color = 'var(--warning)';
+      } else if (sliderVal === '1') {
+        label.textContent = 'PREDICTION: +15 MIN';
+        zoneA.setAttribute('fill', 'url(#grad-med)');
+        zoneB.setAttribute('fill', 'url(#grad-med)');
+        zoneC.setAttribute('fill', 'url(#grad-low)');
+        zoneD.setAttribute('fill', 'url(#grad-high)');
+
+        valA.textContent = '52% (Dense)'; valA.style.color = 'var(--warning)';
+        valB.textContent = '68% (Dense)'; valB.style.color = 'var(--warning)';
+        valC.textContent = '45% (Normal)'; valC.style.color = 'var(--success)';
+        valD.textContent = '84% (Bottle-Neck)'; valD.style.color = 'var(--danger)';
+      } else if (sliderVal === '2') {
+        label.textContent = 'PREDICTION: +30 MIN';
+        zoneA.setAttribute('fill', 'url(#grad-high)');
+        zoneB.setAttribute('fill', 'url(#grad-low)');
+        zoneC.setAttribute('fill', 'url(#grad-med)');
+        zoneD.setAttribute('fill', 'url(#grad-low)');
+
+        valA.textContent = '91% (Bottle-Neck)'; valA.style.color = 'var(--danger)';
+        valB.textContent = '41% (Normal)'; valB.style.color = 'var(--success)';
+        valC.textContent = '55% (Dense)'; valC.style.color = 'var(--warning)';
+        valD.textContent = '36% (Normal)'; valD.style.color = 'var(--success)';
+      } else {
+        label.textContent = 'PREDICTION: POST-MATCH EXIT';
+        zoneA.setAttribute('fill', 'url(#grad-high)');
+        zoneB.setAttribute('fill', 'url(#grad-high)');
+        zoneC.setAttribute('fill', 'url(#grad-high)');
+        zoneD.setAttribute('fill', 'url(#grad-high)');
+
+        valA.textContent = '96% (Bottle-Neck)'; valA.style.color = 'var(--danger)';
+        valB.textContent = '98% (Bottle-Neck)'; valB.style.color = 'var(--danger)';
+        valC.textContent = '94% (Bottle-Neck)'; valC.style.color = 'var(--danger)';
+        valD.textContent = '97% (Bottle-Neck)'; valD.style.color = 'var(--danger)';
+      }
+    }
+
+    // ── Live Security Alert Simulator ──────────
+    function triggerTestAlarm() {
+      const feed = document.getElementById('ops-log-feed');
+      const counter = document.getElementById('alert-counter-live');
+
+      // Update counters
+      counter.textContent = '2';
+      counter.parentElement.querySelector('.metric-change').textContent = '↑ 2 Active Emergency Actions';
+      counter.parentElement.querySelector('.metric-change').className = 'metric-change down';
+
+      // Prepend alarm log to stream
+      const timeStr = new Date().toLocaleTimeString('en-US', { hour12: false });
+      const newAlert = document.createElement('div');
+      newAlert.style.display = 'flex';
+      newAlert.style.alignItems = 'start';
+      newAlert.style.gap = '12px';
+      newAlert.style.background = 'rgba(255,59,78,0.05)';
+      newAlert.style.border = '1px solid rgba(255,59,78,0.1)';
+      newAlert.style.padding = '12px';
+      newAlert.style.borderRadius = '8px';
+      newAlert.className = 'animate-fadeInUp';
+      newAlert.innerHTML = `
+        <span style="font-size:18px;">🚨</span>
+        <div style="flex-1;">
+          <div style="display:flex;justify-content:between;font-weight:700;font-size:13px;color:var(--danger);">
+            <span>AI CCTV Panic Threat</span>
+            <span>${timeStr}</span>
+          </div>
+          <p style="font-size:12px;color:var(--text-secondary);margin-top:2px;">Crowd panic/fall surge detected in Section D Gate D2 corridor. Dispatching standby safety marshalls immediately.</p>
+        </div>
+      `;
+
+      feed.insertBefore(newAlert, feed.firstChild);
+      alert('Security Threat Alarm Broadcasted: standby units alerted.');
+    }
+  </script>
+</body>
+</html>
