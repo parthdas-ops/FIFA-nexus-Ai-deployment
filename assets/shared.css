@@ -108,6 +108,10 @@ body {
   clip: rect(0, 0, 0, 0);
   border: 0;
 }
+*:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
 
 h1, h2, h3, h4, h5, h6 {
   font-family: 'Outfit', sans-serif;
