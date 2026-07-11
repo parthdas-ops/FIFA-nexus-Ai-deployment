@@ -23,14 +23,14 @@ graph TD
     User[🏟️ Stadium Visitor / Operator] -->|Access App| Home[index.html Landing Page]
     Home -->|Click Portal| Auth[auth.html Login Desk]
     
-    subgraph Authentication & Access
+    subgraph "Authentication & Access"
         Auth -->|Credentials / Biometrics Scan| Validate{Verify Identity?}
         Validate -->|Valid| SetSession[Create sessionStorage Token]
         Validate -->|Invalid| ShowError[Access Denied Alert]
         ShowError --> Auth
     end
 
-    subgraph Portal Core (Guarded Routes)
+    subgraph "Portal Core (Guarded Routes)"
         SetSession --> Portals[Portal Redirects]
         Portals --> Fan[fan.html - Fan Portal]
         Portals --> Admin[admin.html - Admin Console]
