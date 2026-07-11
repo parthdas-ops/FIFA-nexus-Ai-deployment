@@ -58,12 +58,41 @@ graph TD
 
 ## 🔒 Security Hardening (Walkthrough)
 
-During our security audit, several client-side vulnerabilities were patched:
+During our security audit and system optimization phase, client-side vulnerabilities were patched:
 
-1.  **Secret Key Removal**: Removed a hardcoded public Gemini API key from `fan.html` and `volunteer.html`. The portals now rely on user-provided local API keys, securely stored in browser `localStorage`.
-2.  **DOM XSS Prevention**: Added HTML escaping to user chat boxes and AI response interpreters to stop potential script injection attacks from untrusted payloads.
-3.  **Portal Route Guards**: Enforced role check validation on portal entries. Direct access to dashboard URLs is blocked; unauthorized users are automatically redirected to `auth.html`.
-4.  **Session Clearing**: Wired active logout controls to clean out authentication tokens when operators sign out of their portals.
+1. **Secret Key Removal**: Removed a hardcoded public Gemini API key from `fan.html` and `volunteer.html`. The portals now rely on user-provided local API keys, securely stored in browser `localStorage`.
+2. **DOM XSS Prevention**: Added HTML escaping (`escapeHTML`) to user chat boxes, concessions lists, and AI response interpreters to stop script injection attacks from untrusted payloads.
+3. **Visual Flash Protection (Route Guards)**: Enforced strict synchronous redirects and visual protection (bodies set to `display: none` by default). The dashboards only render when the user session token is validated, preventing layout or information leakage.
+4. **Session Clearing**: Wired active logout controls to clean out sessionStorage credentials when operators sign out.
+
+---
+
+## ♿ Accessibility & Standards (a11y)
+
+The portals have been updated to target WCAG 2.1 compliance standards:
+- **Landmarks & Layouts**: Main page layouts are wrapped in semantic `<main id="main-content">` regions.
+- **Skip Links**: Keyboard users can immediately bypass nav elements using skip-to-content links.
+- **Aria Labels**: Injected descriptive `aria-label` tags for all visual symbol controls (`☰`, `➤`, `✕`).
+- **Form Association**: Connected all fields, textareas, and options to their labels using `for`/`id` combinations.
+- **Role Tags**: Role selectors are keyboard focusable and selectable (`role="button" tabindex="0"`).
+- **Focus Rings**: Visual outlines are defined for all keyboard focuses (`*:focus-visible`).
+
+---
+
+## 🧪 Testing Suite
+
+We implemented an automated test workspace run by Jest and JSDOM:
+- **Unit Tests (`tests/utils.test.js`)**: Validates HTML escaping, markdown formatting, and sessionStorage redirection logic.
+- **Integration Tests (`tests/concessions.test.js`)**: Emulates full JSDOM sessions simulating concessions item additions, cart removals, price calculations, and checkout UI transitions.
+
+To run the test suite locally:
+```bash
+# Install Jest + JSDOM dependencies
+npm install
+
+# Run the test execution script
+npm test
+```
 
 ---
 
