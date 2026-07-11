@@ -5,25 +5,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FIFA Nexus — Admin Command Center</title>
+  <script src="../assets/js/utils.js"></script>
   <script>
-    (function () {
-      const userStr = sessionStorage.getItem('nexus_user');
-      if (!userStr) {
-        alert('Access Denied: Please log in first.');
-        window.location.href = 'auth.html';
-        return;
-      }
-      try {
-        const user = JSON.parse(userStr);
-        if (user.role !== 'admin') {
-          alert('Access Denied: You do not have permission to view the Admin Command Center.');
-          window.location.href = 'auth.html';
-        }
-      } catch (e) {
-        window.location.href = 'auth.html';
-      }
-    })();
+    checkRouteGuard('admin');
   </script>
+  <style>
+    body {
+      display: none;
+    }
+  </style>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -279,6 +269,7 @@
 </head>
 
 <body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
 
   <div class="admin-bg-glow"></div>
 
@@ -358,8 +349,8 @@
 
   <!-- HEADER -->
   <header class="header">
-    <button class="btn btn-outline btn-icon" id="menu-toggle" style="display:none;"
-      onclick="toggleMobileSidebar()">☰</button>
+    <button class="btn btn-outline btn-icon" id="menu-toggle" style="display:none;" onclick="toggleMobileSidebar()"
+      aria-label="Toggle Sidebar Menu">☰</button>
     <div style="display:flex;align-items:center;gap:8px;">
       <span class="status-dot live"></span>
       <span style="font-size:13px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;">STADIUM LIVE
@@ -380,7 +371,7 @@
   </header>
 
   <!-- MAIN LAYOUT -->
-  <main class="main-layout">
+  <main class="main-layout" id="main-content">
     <div class="page-content">
 
       <!-- ========================================================
@@ -570,8 +561,9 @@
                 Use the predictive slider to forecast stadium crowd flow bottlenecks.
               </p>
 
+              <label for="heatmap-time-slider" class="sr-only">Predictive Simulation Timeline</label>
               <input class="time-slider" type="range" min="0" max="3" step="1" id="heatmap-time-slider" value="0"
-                onchange="simulateHeatmapShift()" />
+                onchange="simulateHeatmapShift()" aria-label="Predictive Simulation Timeline" />
 
               <div
                 style="display:flex;justify-content:between;font-size:12px;font-weight:700;color:var(--text-secondary);">
@@ -695,17 +687,20 @@
 
               <div
                 style="border-top:1px solid var(--border);margin-top:20px;padding-top:16px;display:flex;flex-direction:column;gap:12px;">
-                <label style="display:flex;justify-content:between;align-items:center;font-size:13px;cursor:pointer;">
+                <label for="cctv-fall"
+                  style="display:flex;justify-content:between;align-items:center;font-size:13px;cursor:pointer;">
                   <span>Fall Detection Model</span>
-                  <input type="checkbox" checked style="accent-color:var(--primary);" />
+                  <input type="checkbox" id="cctv-fall" checked style="accent-color:var(--primary);" />
                 </label>
-                <label style="display:flex;justify-content:between;align-items:center;font-size:13px;cursor:pointer;">
+                <label for="cctv-smoke"
+                  style="display:flex;justify-content:between;align-items:center;font-size:13px;cursor:pointer;">
                   <span>Smoke / Fire Detection</span>
-                  <input type="checkbox" checked style="accent-color:var(--primary);" />
+                  <input type="checkbox" id="cctv-smoke" checked style="accent-color:var(--primary);" />
                 </label>
-                <label style="display:flex;justify-content:between;align-items:center;font-size:13px;cursor:pointer;">
+                <label for="cctv-objects"
+                  style="display:flex;justify-content:between;align-items:center;font-size:13px;cursor:pointer;">
                   <span>Abandoned Objects AI</span>
-                  <input type="checkbox" checked style="accent-color:var(--primary);" />
+                  <input type="checkbox" id="cctv-objects" checked style="accent-color:var(--primary);" />
                 </label>
               </div>
             </div>

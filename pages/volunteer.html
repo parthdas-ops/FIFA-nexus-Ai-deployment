@@ -4,25 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FIFA Nexus — Volunteer Hub</title>
+  <script src="../assets/js/utils.js"></script>
   <script>
-    (function() {
-      const userStr = sessionStorage.getItem('nexus_user');
-      if (!userStr) {
-        alert('Access Denied: Please log in first.');
-        window.location.href = 'auth.html';
-        return;
-      }
-      try {
-        const user = JSON.parse(userStr);
-        if (user.role !== 'volunteer') {
-          alert('Access Denied: You do not have permission to view the Volunteer Hub.');
-          window.location.href = 'auth.html';
-        }
-      } catch (e) {
-        window.location.href = 'auth.html';
-      }
-    })();
+    checkRouteGuard('volunteer');
   </script>
+  <style>
+    body { display: none; }
+  </style>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -69,6 +57,7 @@
   </style>
 </head>
 <body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
 
   <div class="volunteer-bg-glow"></div>
 
@@ -126,7 +115,7 @@
 
   <!-- HEADER -->
   <header class="header">
-    <button class="btn btn-outline btn-icon" id="menu-toggle" style="display:none;" onclick="toggleMobileSidebar()">☰</button>
+    <button class="btn btn-outline btn-icon" id="menu-toggle" style="display:none;" onclick="toggleMobileSidebar()" aria-label="Toggle Sidebar Menu">☰</button>
     <div style="display:flex;align-items:center;gap:8px;">
       <span class="status-dot live"></span>
       <span style="font-size:13px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;">VOLUNTEER STATION D CONNECTED</span>
@@ -142,7 +131,7 @@
   </header>
 
   <!-- MAIN LAYOUT -->
-  <main class="main-layout">
+  <main class="main-layout" id="main-content">
     <div class="page-content">
 
       <!-- ========================================================
@@ -213,7 +202,7 @@
           <div class="glass-card p-6">
             <span class="section-title mb-4">Input Speech or Text</span>
             <div class="form-group mt-4">
-              <label class="form-label">Source Language</label>
+              <label class="form-label" for="translate-source-lang">Source Language</label>
               <select class="input" id="translate-source-lang">
                 <option value="ar">Arabic (العربية)</option>
                 <option value="es">Spanish (Español)</option>
@@ -222,7 +211,7 @@
               </select>
             </div>
             <div class="form-group">
-              <label class="form-label">Type Fan Statement</label>
+              <label class="form-label" for="translate-input-box">Type Fan Statement</label>
               <textarea class="input" style="height:120px;resize:none;" id="translate-input-box" placeholder="Write or capture speech input here..."></textarea>
             </div>
             <div style="display:flex;gap:10px;">
@@ -261,7 +250,7 @@
 
             <form id="incident-report-form" onsubmit="submitIncident(event)" style="margin-top:20px;">
               <div class="form-group">
-                <label class="form-label">Incident Classification</label>
+                <label class="form-label" for="inc-type">Incident Classification</label>
                 <select class="input" id="inc-type" required>
                   <option value="medical">Medical emergency (Injury/Fall)</option>
                   <option value="security">Security hazard (Altercation/Unruly behavior)</option>
@@ -271,12 +260,12 @@
               </div>
 
               <div class="form-group">
-                <label class="form-label">Location (Seat / Section Coordinates)</label>
+                <label class="form-label" for="inc-loc">Location (Seat / Section Coordinates)</label>
                 <input class="input" type="text" id="inc-loc" value="Section D Concourse near Restroom Level 1" required />
               </div>
 
               <div class="form-group">
-                <label class="form-label">Incident Summary Details</label>
+                <label class="form-label" for="inc-desc">Incident Summary Details</label>
                 <textarea class="input" style="height:100px;resize:none;" id="inc-desc" placeholder="Briefly describe the scenario for dispatchers..." required></textarea>
               </div>
 
@@ -359,20 +348,7 @@
       }
     }
 
-    function formatMarkdown(text) {
-      if (!text) return '';
-      const escaped = text
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-      return escaped
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.*?)\*/g, '<em>$1</em>')
-        .replace(/`([^`]+)`/g, '<code>$1</code>')
-        .replace(/\n/g, '<br />');
-    }
+    // Shared formatMarkdown utility function loaded from utils.js
 
     async function executeTranslation() {
       const src = document.getElementById('translate-source-lang').value;

@@ -6,6 +6,7 @@
   <title>FIFA Nexus AI — Smart Stadium OS for World Cup 2026</title>
   <meta name="description" content="AI-Powered Smart Stadium Operating System for FIFA World Cup 2026. Real-time crowd intelligence, AI concierge, and seamless fan experience." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <script src="assets/js/utils.js"></script>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <style>
@@ -18,6 +19,35 @@
       color: #E8F0FE;
       line-height: 1.6;
       overflow-x: hidden;
+    }
+    
+    /* ========== ACCESSIBILITY HELPERS ========== */
+    .skip-link {
+      position: absolute;
+      top: -100px;
+      left: 10px;
+      background: var(--primary);
+      color: #000;
+      padding: 8px 16px;
+      z-index: 9999;
+      font-weight: 700;
+      border-radius: 0 0 6px 6px;
+      transition: top 0.2s ease;
+      text-decoration: none;
+    }
+    .skip-link:focus {
+      top: 0;
+      outline: 2px solid var(--accent);
+    }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      border: 0;
     }
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: #0D1525; }
@@ -562,6 +592,7 @@
   </style>
 </head>
 <body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
 
 <!-- NAVIGATION -->
 <nav id="navbar">
@@ -593,6 +624,8 @@
     <a class="nav-cta" href="pages/auth.html?role=fan">Enter Portal →</a>
   </div>
 </nav>
+
+<main id="main-content">
 
 <!-- HERO -->
 <section class="hero">
@@ -866,8 +899,9 @@
         </div>
       </div>
       <div class="chat-input-area">
+        <label for="demo-input" class="sr-only">Demo Chat Input</label>
         <input type="text" class="chat-input-field" id="demo-input" placeholder="Ask me anything about the stadium…" />
-        <button class="chat-send" onclick="sendDemoMsg()">➤</button>
+        <button class="chat-send" onclick="sendDemoMsg()" aria-label="Send Message">➤</button>
       </div>
     </div>
   </div>
@@ -951,6 +985,8 @@
     </div>
   </div>
 </section>
+
+</main>
 
 <!-- FOOTER -->
 <footer>
@@ -1048,15 +1084,7 @@
   ];
   let demoIdx = 0;
 
-  function escapeHTML(str) {
-    if (!str) return '';
-    return str
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
-  }
+  // escapeHTML is loaded from shared assets/js/utils.js
 
   function sendDemoMsg() {
     const input = document.getElementById('demo-input');

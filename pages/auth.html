@@ -376,10 +376,10 @@
 
       <!-- Role Selector -->
       <div class="role-badges-container">
-        <span class="role-badge-select active" data-role="fan" onclick="setRole('fan')">Fan</span>
-        <span class="role-badge-select" data-role="admin" onclick="setRole('admin')">Admin</span>
-        <span class="role-badge-select" data-role="volunteer" onclick="setRole('volunteer')">Volunteer</span>
-        <span class="role-badge-select" data-role="vendor" onclick="setRole('vendor')">Vendor</span>
+        <span class="role-badge-select active" role="button" tabindex="0" aria-label="Select Fan role" data-role="fan" onclick="setRole('fan')" onkeydown="if(event.key==='Enter'||event.key===' ')setRole('fan')">Fan</span>
+        <span class="role-badge-select" role="button" tabindex="0" aria-label="Select Admin role" data-role="admin" onclick="setRole('admin')" onkeydown="if(event.key==='Enter'||event.key===' ')setRole('admin')">Admin</span>
+        <span class="role-badge-select" role="button" tabindex="0" aria-label="Select Volunteer role" data-role="volunteer" onclick="setRole('volunteer')" onkeydown="if(event.key==='Enter'||event.key===' ')setRole('volunteer')">Volunteer</span>
+        <span class="role-badge-select" role="button" tabindex="0" aria-label="Select Vendor role" data-role="vendor" onclick="setRole('vendor')" onkeydown="if(event.key==='Enter'||event.key===' ')setRole('vendor')">Vendor</span>
       </div>
 
       <form id="auth-form" onsubmit="handleLogin(event)">
@@ -400,8 +400,8 @@
         </div>
 
         <div class="form-options">
-          <label class="remember-me">
-            <input type="checkbox" checked />
+          <label class="remember-me" for="remember-device">
+            <input type="checkbox" id="remember-device" checked />
             Remember my device
           </label>
           <a class="forgot-link" href="#" onclick="alert('Demo notice: Security key fallback link sent to device email.')">Forgot PIN?</a>

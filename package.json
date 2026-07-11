@@ -1,0 +1,13 @@
+{
+  "name": "fifa-nexus-ai",
+  "version": "1.0.0",
+  "description": "Smart Stadium OS for World Cup 2026",
+  "main": "assets/js/utils.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0"
+  }
+}
