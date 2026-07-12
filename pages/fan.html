@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FIFA Nexus — Fan Portal</title>
   <meta name="description" content="Fan companion dashboard for ticket validation, smart stadium routing, food concessions, and emergency SOS services." />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://generativelanguage.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://generativelanguage.googleapis.com; img-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self';" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
   <script src="../assets/js/utils.js"></script>
   <script>
     checkRouteGuard('fan');
@@ -989,7 +991,7 @@
           typingDiv.remove();
           const botDiv = document.createElement('div');
           botDiv.className = 'chat-msg bot animate-fadeInUp';
-          botDiv.innerHTML = `<div class="chat-bubble" style="color:var(--danger);">⚠️ Gemini API Error: ${err.message}. Please verify your API key and connection.</div><div class="chat-time">Just now</div>`;
+          botDiv.innerHTML = `<div class="chat-bubble" style="color:var(--danger);">⚠️ Gemini API Error: ${escapeHTML(err.message)}. Please verify your API key and connection.</div><div class="chat-time">Just now</div>`;
           conversation.appendChild(botDiv);
         }
         conversation.scrollTop = conversation.scrollHeight;

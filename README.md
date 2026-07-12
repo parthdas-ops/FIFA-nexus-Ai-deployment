@@ -42,16 +42,18 @@ graph TD
         Guard[🔒 Route Guards - Active checking on load]
         Sanitizer[🧼 XSS Input Sanitizer - Sanitizes Chat/Input]
         NoSecrets[🔑 Local Storage Key Input - No hardcoded secrets]
+        CSP[🛡️ Content Security Policy - Block unauthorized scripts/connections]
     end
 
-    Fan -.-> Guard & Sanitizer & NoSecrets
-    Admin -.-> Guard
-    Vendor -.-> Guard
-    Volunteer -.-> Guard & Sanitizer & NoSecrets
+    Fan -.-> Guard & Sanitizer & NoSecrets & CSP
+    Admin -.-> Guard & CSP
+    Vendor -.-> Guard & CSP
+    Volunteer -.-> Guard & Sanitizer & NoSecrets & CSP
 
     style Guard fill:#111D35,stroke:#00E5CC,stroke-width:2px;
     style Sanitizer fill:#111D35,stroke:#00E5CC,stroke-width:2px;
     style NoSecrets fill:#111D35,stroke:#00E5CC,stroke-width:2px;
+    style CSP fill:#111D35,stroke:#0080FF,stroke-width:2px;
 ```
 
 ---
@@ -64,6 +66,7 @@ During our security audit and system optimization phase, client-side vulnerabili
 2. **DOM XSS Prevention**: Added HTML escaping (`escapeHTML`) to user chat boxes, concessions lists, and AI response interpreters to stop script injection attacks from untrusted payloads.
 3. **Visual Flash Protection (Route Guards)**: Enforced strict synchronous redirects and visual protection (bodies set to `display: none` by default). The dashboards only render when the user session token is validated, preventing layout or information leakage.
 4. **Session Clearing**: Wired active logout controls to clean out sessionStorage credentials when operators sign out.
+5. **Content Security Policy (CSP)**: Applied a strict `Content-Security-Policy` and `Referrer-Policy` to all portals and homepages to prevent unauthorized third-party scripts, stylesheets, or connect endpoints.
 
 ---
 
@@ -76,6 +79,7 @@ The portals have been updated to target WCAG 2.1 compliance standards:
 - **Form Association**: Connected all fields, textareas, and options to their labels using `for`/`id` combinations.
 - **Role Tags**: Role selectors are keyboard focusable and selectable (`role="button" tabindex="0"`).
 - **Focus Rings**: Visual outlines are defined for all keyboard focuses (`*:focus-visible`).
+- **Reduced Motion**: Respects prefers-reduced-motion configuration to disable animations for users with motion sensitivity.
 
 ---
 
@@ -83,6 +87,7 @@ The portals have been updated to target WCAG 2.1 compliance standards:
 
 We implemented an automated test workspace run by Jest and JSDOM:
 - **Unit Tests (`tests/utils.test.js`)**: Validates HTML escaping, markdown formatting, and sessionStorage redirection logic.
+- **Security Tests (`tests/security.test.js`)**: Focuses on input sanitization robustness, script removal, and session token format validation.
 - **Integration Tests (`tests/concessions.test.js`)**: Emulates full JSDOM sessions simulating concessions item additions, cart removals, price calculations, and checkout UI transitions.
 
 To run the test suite locally:

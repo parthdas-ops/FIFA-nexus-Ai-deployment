@@ -5,7 +5,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FIFA Nexus — Admin Command Center</title>
-  <meta name="description" content="Command and operations console for real-time crowd heatmap analytics, CCTV threats, and stadium resources." />
+  <meta name="description"
+    content="Command and operations console for real-time crowd heatmap analytics, CCTV threats, and stadium resources." />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self';" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
   <script src="../assets/js/utils.js"></script>
   <script>
     checkRouteGuard('admin');
@@ -824,10 +827,10 @@
       sidebar.classList.toggle('open');
     }
 
-    // ── Live Fan Count Increments ──────────────
-    const liveFansEl = document.getElementById('fan-count-live');
-    let fans = 64847;
-    setInterval(() => {
+    // ── Live Fan Count Increments (cached DOM ref) ──
+    var liveFansEl = document.getElementById('fan-count-live');
+    var fans = 64847;
+    setInterval(function () {
       fans += Math.floor(Math.random() * 8) - 3;
       fans = Math.max(64000, Math.min(65000, fans));
       liveFansEl.textContent = fans.toLocaleString();

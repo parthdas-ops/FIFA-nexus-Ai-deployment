@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FIFA Nexus AI — Smart Stadium OS for World Cup 2026</title>
   <meta name="description" content="AI-Powered Smart Stadium Operating System for FIFA World Cup 2026. Real-time crowd intelligence, AI concierge, and seamless fan experience." />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://generativelanguage.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://generativelanguage.googleapis.com; img-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self';" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <script src="assets/js/utils.js"></script>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -625,7 +627,7 @@
   </div>
 </nav>
 
-<main id="main-content">
+<main id="main-content" role="main">
 
 <!-- HERO -->
 <section class="hero">
@@ -1075,6 +1077,8 @@
   }, 1500);
 
   // ── Demo input send ────────────────────────
+  var demoInputEl = document.getElementById('demo-input');
+  var chatDemoEl = document.getElementById('chat-demo');
   const demoResponses = [
     "🔍 Let me check that for you… The nearest restroom from your current location is on Level 2, Section C — about 90 seconds walk. All restrooms are currently clean and accessible. ♿",
     "🚌 The shuttle to Downtown Hotel Zone departs every 15 minutes. Next departure: <strong>8 minutes</strong>. Estimated journey time: 22 minutes. Platform 3, Gate F exit.",
@@ -1087,10 +1091,9 @@
   // escapeHTML is loaded from shared assets/js/utils.js
 
   function sendDemoMsg() {
-    const input = document.getElementById('demo-input');
-    const msg = input.value.trim();
+    var msg = sanitizeInput(demoInputEl.value);
     if (!msg) return;
-    const chat = document.getElementById('chat-demo');
+    var chat = chatDemoEl;
 
     // Add user message
     const userDiv = document.createElement('div');
@@ -1104,7 +1107,7 @@
     typingDiv.innerHTML = '<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>';
     chat.appendChild(typingDiv);
     chat.scrollTop = chat.scrollHeight;
-    input.value = '';
+    demoInputEl.value = '';
 
     setTimeout(() => {
       typingDiv.remove();
@@ -1117,19 +1120,19 @@
     }, 1500);
   }
 
-  document.getElementById('demo-input').addEventListener('keydown', e => {
+  demoInputEl.addEventListener('keydown', function (e) {
     if (e.key === 'Enter') sendDemoMsg();
-  });
+  }, { passive: false });
 
-  // ── Navbar scroll effect ───────────────────
-  window.addEventListener('scroll', () => {
-    const nav = document.getElementById('navbar');
+  // ── Navbar scroll effect (debounced for performance) ───
+  var navEl = document.querySelector('nav');
+  window.addEventListener('scroll', debounce(function () {
     if (window.scrollY > 20) {
-      nav.style.background = 'rgba(5,10,20,0.97)';
+      navEl.style.background = 'rgba(5,10,20,0.97)';
     } else {
-      nav.style.background = 'rgba(5,10,20,0.85)';
+      navEl.style.background = 'rgba(5,10,20,0.85)';
     }
-  });
+  }, 100), { passive: true });
 </script>
 </body>
 </html>

@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FIFA Nexus — Volunteer Hub</title>
   <meta name="description" content="Volunteer Translation desk and dispatch console to support international visitors at Mercedes-Benz Stadium." />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://generativelanguage.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://generativelanguage.googleapis.com; img-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self';" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
   <script src="../assets/js/utils.js"></script>
   <script>
     checkRouteGuard('volunteer');
@@ -394,7 +396,7 @@
           let translationResult = data.candidates?.[0]?.content?.parts?.[0]?.text || "No translation output.";
           output.innerHTML = formatMarkdown(translationResult);
         } catch (err) {
-          output.innerHTML = `<span style="color:var(--danger);">⚠️ Translation Error: ${err.message}. Verification key issue or network error.</span>`;
+          output.innerHTML = `<span style="color:var(--danger);">⚠️ Translation Error: ${escapeHTML(err.message)}. Verification key issue or network error.</span>`;
         }
       } else {
         // Fallback Mock Response Flow

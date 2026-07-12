@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Access Nexus — FIFA Nexus AI Portal Authentication</title>
   <meta name="description" content="Secure identity validation desk for the FIFA Nexus AI OS smart stadium portals." />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self';" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -388,7 +390,7 @@
           <label class="form-label" for="email">Nexus ID / Email</label>
           <div class="input-wrapper">
             <span class="input-icon">✉</span>
-            <input class="input auth-input" type="email" id="email" placeholder="name@nexus.fifa.com" required value="fan.guest@worldcup2026.com" />
+            <input class="input auth-input" type="email" id="email" placeholder="name@nexus.fifa.com" required value="fan.guest@worldcup2026.com" maxlength="254" autocomplete="email" />
           </div>
         </div>
 
@@ -396,7 +398,7 @@
           <label class="form-label" for="password">Security Password</label>
           <div class="input-wrapper">
             <span class="input-icon">🔒</span>
-            <input class="input auth-input" type="password" id="password" placeholder="••••••••" required value="nexusguestpass2026" />
+            <input class="input auth-input" type="password" id="password" placeholder="••••••••" required value="nexusguestpass2026" maxlength="128" autocomplete="current-password" />
           </div>
         </div>
 
@@ -433,7 +435,7 @@
         <div class="scan-laser" id="scan-laser"></div>
         <span class="scan-face-icon" id="scan-icon">👤</span>
       </div>
-      <div class="scan-status" id="scan-status">Initializing Camera...</div>
+      <div class="scan-status" id="scan-status" aria-live="assertive">Initializing Camera...</div>
       <div class="scan-subtext" id="scan-subtext">Align your face with the bounding oval container.</div>
       <button class="btn btn-outline btn-sm" onclick="cancelScan()">Cancel Verification</button>
     </div>

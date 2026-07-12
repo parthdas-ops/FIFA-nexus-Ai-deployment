@@ -610,3 +610,32 @@ h1, h2, h3, h4, h5, h6 {
   .grid-cols-4 { grid-template-columns: 1fr; }
   .grid-cols-3 { grid-template-columns: 1fr; }
 }
+
+/* ── Accessibility: Reduced Motion & High Contrast ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-delay: -1ms !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    background-attachment: initial !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --text-primary: #FFFFFF;
+    --text-secondary: #E0E6F0;
+    --text-muted: #B8C8DF;
+    --primary: #00FFEB;
+    --accent: #FFE54C;
+    --border: rgba(255, 255, 255, 0.25);
+  }
+  .glass-card {
+    background: rgba(17, 29, 53, 0.95);
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+}
+
