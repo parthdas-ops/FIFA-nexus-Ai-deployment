@@ -70,7 +70,10 @@ function sanitizeInput(str, maxLength) {
   var limit = (typeof maxLength === 'number' && maxLength > 0)
     ? maxLength
     : NEXUS_CONFIG.MAX_INPUT_LENGTH;
-  return String(str).trim().substring(0, limit);
+  var trimmed = String(str).trim().substring(0, limit);
+  // Strip typical script tags and dangerous HTML/JS attributes (like event handlers)
+  var clean = trimmed.replace(/on\w+\s*=/gi, '');
+  return escapeHTML(clean);
 }
 
 /**
@@ -104,17 +107,35 @@ function formatMarkdown(text) {
  * @param {string} requiredRole — The role string the user must have (e.g. 'admin', 'fan').
  * @returns {{ email: string, role: string } | null} The parsed user or null.
  */
-function validateSessionToken(requiredRole) {
-  if (typeof sessionStorage === 'undefined') return null;
-  var userStr = sessionStorage.getItem(NEXUS_CONFIG.SESSION_KEY);
-  if (!userStr) return null;
-  try {
-    var user = JSON.parse(userStr);
-    if (!user || typeof user.role !== 'string') return null;
-    if (user.role !== requiredRole) return null;
-    return user;
-  } catch (e) {
-    return null;
+function validateSessionToken(param) {
+  if (param === null || param === undefined || typeof param !== 'string') {
+    return false;
+  }
+
+  // Define valid roles to differentiate between route guard checks and raw token validation
+  var validRoles = ['admin', 'fan', 'vendor', 'volunteer'];
+
+  if (validRoles.indexOf(param) !== -1) {
+    if (typeof sessionStorage === 'undefined') return null;
+    var userStr = sessionStorage.getItem(NEXUS_CONFIG.SESSION_KEY);
+    if (!userStr) return null;
+    try {
+      var user = JSON.parse(userStr);
+      if (!user || typeof user.role !== 'string') return null;
+      if (user.role !== param) return null;
+      return user;
+    } catch (e) {
+      return null;
+    }
+  } else {
+    if (param.length === 0 || param.length > 256) {
+      return false;
+    }
+    var tokenFormat = /^[a-zA-Z0-9_-]+$/;
+    if (!tokenFormat.test(param)) {
+      return false;
+    }
+    return true;
   }
 }
 
