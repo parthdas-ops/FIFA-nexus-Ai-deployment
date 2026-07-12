@@ -1,0 +1,24 @@
+body { display: none; }
+.vendor-bg-glow {
+      position: fixed;
+      top: -30%; left: -20%; width: 50%; height: 50%;
+      background: radial-gradient(circle, rgba(255, 149, 0, 0.08) 0%, transparent 70%);
+      filter: blur(80px); pointer-events: none; z-index: -1;
+    }
+
+    .tab-view {
+      display: none;
+    }
+    .tab-view.active {
+      display: block;
+      animation: fadeInUp 0.4s ease forwards;
+    }
+
+    .order-card {
+      transition: all var(--trans-fast);
+      border-left: 3px solid var(--accent);
+    }
+    .order-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }

@@ -5,44 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FIFA Nexus — Vendor Dashboard</title>
   <meta name="description" content="Kitchen concessions dashboard for real-time queue metrics, food prep status tracking, and orders queue management." />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self';" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' ; style-src 'self'  https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self';" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
-  <script src="../assets/js/utils.js"></script>
-  <script>
-    checkRouteGuard('vendor');
-  </script>
-  <style>
-    body { display: none; }
-  </style>
+  
+  
+  
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="../assets/shared.css" />
-  <style>
-    .vendor-bg-glow {
-      position: fixed;
-      top: -30%; left: -20%; width: 50%; height: 50%;
-      background: radial-gradient(circle, rgba(255, 149, 0, 0.08) 0%, transparent 70%);
-      filter: blur(80px); pointer-events: none; z-index: -1;
-    }
-
-    .tab-view {
-      display: none;
-    }
-    .tab-view.active {
-      display: block;
-      animation: fadeInUp 0.4s ease forwards;
-    }
-
-    .order-card {
-      transition: all var(--trans-fast);
-      border-left: 3px solid var(--accent);
-    }
-    .order-card:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-md);
-    }
-  </style>
+  
+  <link rel="stylesheet" href="../assets/css/vendor.css" />
+  <script src="../assets/js/utils.js"></script>
+  <script src="../assets/js/vendor-guard.js"></script>
 </head>
 <body>
   <a href="#main-content" class="skip-link">Skip to main content</a>
@@ -74,10 +49,10 @@
 
     <div class="sidebar-section">
       <div class="sidebar-section-label">Concessions Desk</div>
-      <button class="sidebar-item active" data-tab="orders" onclick="switchTab('orders')">
+      <button class="sidebar-item active" data-tab="orders" data-action="switchTab" data-target="orders">
         <span class="item-icon">📋</span> Active Orders Queue
       </button>
-      <button class="sidebar-item" data-tab="inventory" onclick="switchTab('inventory')">
+      <button class="sidebar-item" data-tab="inventory" data-action="switchTab" data-target="inventory">
         <span class="item-icon">📦</span> Stock & Analytics
       </button>
     </div>
@@ -91,7 +66,7 @@
             <div style="font-size:10px;color:var(--text-muted);">Counter 4 · Gate D2</div>
           </div>
         </div>
-        <a href="auth.html" onclick="sessionStorage.removeItem('nexus_user');" class="sidebar-item" style="margin-top:10px; color:var(--danger);">
+        <a href="auth.html" class="sidebar-item logout-link" class="sidebar-item" style="margin-top:10px; color:var(--danger);">
           <span class="item-icon">🚪</span> Sign Out
         </a>
       </div>
@@ -100,7 +75,7 @@
 
   <!-- HEADER -->
   <header class="header">
-    <button class="btn btn-outline btn-icon" id="menu-toggle" style="display:none;" onclick="toggleMobileSidebar()" aria-label="Toggle Sidebar Menu">☰</button>
+    <button class="btn btn-outline btn-icon" id="menu-toggle" style="display:none;" data-action="toggleMobileSidebar" aria-label="Toggle Sidebar Menu">☰</button>
     <div style="display:flex;align-items:center;gap:8px;">
       <span class="status-dot live"></span>
       <span style="font-size:13px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;">KITCHEN DISPATCH TERMINAL</span>
@@ -128,7 +103,7 @@
             <h1 style="font-size:28px;margin-bottom:4px;">Incoming Orders Queue</h1>
             <p style="font-size:14px;color:var(--text-secondary);">Live feed of mobile fan orders submitted near Section D</p>
           </div>
-          <button class="btn btn-outline btn-sm" onclick="simulateNewOrder()">Simulate Incoming Order</button>
+          <button class="btn btn-outline btn-sm" data-action="simulateNewOrder">Simulate Incoming Order</button>
         </div>
 
         <div style="display:flex;flex-direction:column;gap:16px;" id="orders-list-container">
@@ -144,7 +119,7 @@
               <p style="font-size:13px;color:var(--text-secondary);margin-top:4px;">Client: Alex Johnson (Section D Row 14 Seat 06). Payment: Mobile verification confirmed.</p>
             </div>
             <div>
-              <button class="btn btn-primary btn-sm" id="btn-order-73" onclick="advanceOrder(73)">Mark Ready for Pickup</button>
+              <button class="btn btn-primary btn-sm" id="btn-order-73" data-action="advanceOrder" data-id="73">Mark Ready for Pickup</button>
             </div>
           </div>
 
@@ -160,7 +135,7 @@
               <p style="font-size:13px;color:var(--text-secondary);margin-top:4px;">Client: Sarah Connor (Section D Row 10 Seat 12). Payment: Mobile verification confirmed.</p>
             </div>
             <div>
-              <button class="btn btn-primary btn-sm" id="btn-order-74" onclick="advanceOrder(74)">Mark Ready for Pickup</button>
+              <button class="btn btn-primary btn-sm" id="btn-order-74" data-action="advanceOrder" data-id="74">Mark Ready for Pickup</button>
             </div>
           </div>
         </div>
@@ -260,87 +235,7 @@
     </div>
   </main>
 
-  <script>
-    // ── Tab switcher ───────────────────────────
-    function switchTab(tabId) {
-      document.querySelectorAll('.tab-view').forEach(el => el.classList.remove('active'));
-      document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
-
-      const targetView = document.getElementById('view-' + tabId);
-      if (targetView) targetView.classList.add('active');
-
-      const activeSidebarItem = document.querySelector(`.sidebar-item[data-tab="${tabId}"]`);
-      if (activeSidebarItem) activeSidebarItem.classList.add('active');
-    }
-
-    // ── Mobile Sidebar Toggle ──────────────────
-    function toggleMobileSidebar() {
-      const sidebar = document.getElementById('sidebar');
-      sidebar.classList.toggle('open');
-    }
-
-    // ── Advance Order preparation state ────────
-    let activePendingCount = 2;
-    function advanceOrder(orderId) {
-      const card = document.getElementById('order-card-' + orderId);
-      const label = document.getElementById('status-label-' + orderId);
-      const btn = document.getElementById('btn-order-' + orderId);
-
-      if (label.textContent === 'Cooking') {
-        label.textContent = 'Ready';
-        label.className = 'badge badge-success';
-        btn.textContent = 'Complete Dispatch';
-        btn.className = 'btn btn-outline btn-sm';
-      } else {
-        // Complete order removal
-        card.remove();
-        activePendingCount--;
-        document.getElementById('pending-counter').textContent = `${activePendingCount} Orders Cooking`;
-        if (activePendingCount === 0) {
-          document.getElementById('pending-counter').textContent = 'Queue Clear';
-          document.getElementById('pending-counter').style.color = 'var(--success)';
-        }
-      }
-    }
-
-    // ── Simulate New Order incoming ────────────
-    function simulateNewOrder() {
-      activePendingCount++;
-      document.getElementById('pending-counter').textContent = `${activePendingCount} Orders Cooking`;
-      document.getElementById('pending-counter').style.color = 'var(--warning)';
-
-      const container = document.getElementById('orders-list-container');
-      const mockId = Math.floor(Math.random() * 90) + 10;
-
-      const orderDiv = document.createElement('div');
-      orderDiv.className = 'glass-card p-6 order-card flex justify-between items-center animate-fadeInUp';
-      orderDiv.id = 'order-card-' + mockId;
-      orderDiv.innerHTML = `
-        <div>
-          <div style="display:flex;align-items:center;gap:10px;">
-            <span class="badge badge-gold">Token #${mockId}X</span>
-            <span class="badge badge-warning" id="status-label-${mockId}">Cooking</span>
-            <span style="font-size:12px;color:var(--text-muted);">Placed just now</span>
-          </div>
-          <h3 style="font-size:18px;margin-top:8px;">1x Shawarma Wrap, 2x Cheesy Fries</h3>
-          <p style="font-size:13px;color:var(--text-secondary);margin-top:4px;">Client: Robert Davis (Section D Row 8 Seat 14). Payment: Mobile verification confirmed.</p>
-        </div>
-        <div>
-          <button class="btn btn-primary btn-sm" id="btn-order-${mockId}" onclick="advanceOrder(${mockId})">Mark Ready for Pickup</button>
-        </div>
-      `;
-
-      container.insertBefore(orderDiv, container.firstChild);
-      alert('Incoming concession order submitted!');
-    }
-
-    // ── Live Revenue Counter Increments ─────────
-    let revenueVal = 4842.50;
-    const revCounter = document.getElementById('revenue-counter-val');
-    setInterval(() => {
-      revenueVal += Math.random() > 0.4 ? 9.50 : 5.00;
-      revCounter.textContent = '$' + revenueVal.toFixed(2);
-    }, 4500);
-  </script>
+  
+  <script src="../assets/js/vendor.js"></script>
 </body>
 </html>

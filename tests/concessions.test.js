@@ -23,6 +23,15 @@ describe('Concessions & Basket Integration Suite', () => {
     let htmlContent = fs.readFileSync(filePath, 'utf8');
     // Remove external utilities script tag to prevent JSDOM loading errors
     htmlContent = htmlContent.replace(/<script src="\.\.\/assets\/js\/utils\.js"><\/script>/g, '');
+    htmlContent = htmlContent.replace(/<script src="\.\.\/assets\/js\/fan-guard\.js"><\/script>/g, '');
+    
+    // Inline the external fan.js script for JSDOM execution
+    const jsPath = path.resolve(__dirname, '../assets/js/fan.js');
+    const jsContent = fs.readFileSync(jsPath, 'utf8');
+    htmlContent = htmlContent.replace(
+      /<script src="\.\.\/assets\/js\/fan\.js"><\/script>/g,
+      () => `<script>${jsContent}</script>`
+    );
 
     const virtualConsole = new VirtualConsole();
     virtualConsole.sendTo(console);

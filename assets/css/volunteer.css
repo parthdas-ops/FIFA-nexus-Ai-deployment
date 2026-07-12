@@ -1,0 +1,39 @@
+body { display: none; }
+.volunteer-bg-glow {
+      position: fixed;
+      top: -30%; right: -20%; width: 50%; height: 50%;
+      background: radial-gradient(circle, rgba(0, 214, 143, 0.08) 0%, transparent 70%);
+      filter: blur(80px); pointer-events: none; z-index: -1;
+    }
+
+    .tab-view {
+      display: none;
+    }
+    .tab-view.active {
+      display: block;
+      animation: fadeInUp 0.4s ease forwards;
+    }
+
+    .task-card {
+      transition: all var(--trans-fast);
+      border-left: 3px solid transparent;
+    }
+    .task-card.high { border-left-color: var(--danger); }
+    .task-card.med  { border-left-color: var(--warning); }
+    .task-card.low  { border-left-color: var(--info); }
+    .task-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+    .task-card.completed {
+      opacity: 0.6;
+      border-left-color: var(--text-disabled);
+    }
+
+    .translation-box {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      min-height: 100px;
+    }

@@ -1,0 +1,248 @@
+body { display: none; }
+body {
+      display: none;
+    }
+/* Admin specific styling */
+    .admin-bg-glow {
+      position: fixed;
+      top: -20%;
+      left: -20%;
+      width: 50%;
+      height: 50%;
+      background: radial-gradient(circle, rgba(10, 132, 255, 0.08) 0%, transparent 70%);
+      filter: blur(80px);
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    /* Tab navigation views */
+    .tab-view {
+      display: none;
+    }
+
+    .tab-view.active {
+      display: block;
+      animation: fadeInUp 0.4s ease forwards;
+    }
+
+    /* Heatmap SVG */
+    .heatmap-svg {
+      width: 100%;
+      max-height: 480px;
+      background: #070c16;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+    }
+
+    .heatmap-zone {
+      transition: fill 0.8s ease, opacity 0.8s ease;
+      cursor: pointer;
+    }
+
+    /* CCTV grid screen layouts */
+    .cctv-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    .cctv-screen {
+      background: #000;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      position: relative;
+      aspect-ratio: 16/9;
+      overflow: hidden;
+    }
+
+    .cctv-video-mock {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(180deg, #090e1a 0%, #03060c 100%);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* CRT Scan Line effect */
+    .cctv-scanline {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+      background-size: 100% 4px, 6px 100%;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .cctv-timestamp {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.6);
+      background: rgba(0, 0, 0, 0.5);
+      padding: 2px 6px;
+      border-radius: 4px;
+      z-index: 5;
+    }
+
+    .cctv-label {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 2px 8px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      z-index: 5;
+    }
+
+    .cctv-overlay-box {
+      position: absolute;
+      border: 2px solid var(--primary);
+      border-radius: 4px;
+      background: rgba(0, 229, 204, 0.05);
+      z-index: 4;
+      display: flex;
+      flex-direction: column;
+      pointer-events: none;
+    }
+
+    .cctv-overlay-box.warning {
+      border-color: var(--warning);
+      background: rgba(255, 149, 0, 0.05);
+    }
+
+    .cctv-overlay-box.danger {
+      border-color: var(--danger);
+      background: rgba(255, 59, 78, 0.05);
+      animation: alertBlink 1s infinite alternate;
+    }
+
+    @keyframes alertBlink {
+      from {
+        border-color: var(--danger);
+      }
+
+      to {
+        border-color: transparent;
+      }
+    }
+
+    .cctv-overlay-text {
+      background: var(--primary);
+      color: #000;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1px 4px;
+      align-self: flex-start;
+    }
+
+    .cctv-overlay-box.warning .cctv-overlay-text {
+      background: var(--warning);
+    }
+
+    .cctv-overlay-box.danger .cctv-overlay-text {
+      background: var(--danger);
+      color: #fff;
+    }
+
+    /* Static noise simulator overlay for camera feeds */
+    .cctv-noise {
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(circle, rgba(255, 255, 255, 0.15) 1px, transparent 1px);
+      background-size: 3px 3px;
+      opacity: 0.15;
+      pointer-events: none;
+      animation: noiseMove 0.2s infinite;
+    }
+
+    @keyframes noiseMove {
+      0% {
+        transform: translate(0, 0);
+      }
+
+      50% {
+        transform: translate(-1px, 1px);
+      }
+
+      100% {
+        transform: translate(1px, -1px);
+      }
+    }
+
+    /* Slider styling */
+    .time-slider {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: var(--radius-full);
+      background: var(--bg-elevated);
+      outline: none;
+      margin: 16px 0;
+    }
+
+    .time-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--primary);
+      cursor: pointer;
+      box-shadow: 0 0 10px var(--primary);
+      transition: transform 0.1s;
+    }
+
+    .time-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    /* Dial gauge layout */
+    .gauge-container {
+      position: relative;
+      width: 120px;
+      height: 120px;
+      margin: 0 auto 12px;
+    }
+
+    .gauge-svg {
+      width: 120px;
+      height: 120px;
+    }
+
+    .gauge-track {
+      fill: none;
+      stroke: var(--bg-elevated);
+      stroke-width: 8;
+    }
+
+    .gauge-fill {
+      fill: none;
+      stroke-width: 8;
+      stroke-linecap: round;
+      stroke-dasharray: 251.2;
+      stroke-dashoffset: 251.2;
+      transition: stroke-dashoffset 0.8s ease;
+    }
+
+    .gauge-value-label {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Outfit', sans-serif;
+      font-size: 20px;
+      font-weight: 800;
+    }

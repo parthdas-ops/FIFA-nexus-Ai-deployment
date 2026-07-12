@@ -7,269 +7,21 @@
   <title>FIFA Nexus — Admin Command Center</title>
   <meta name="description"
     content="Command and operations console for real-time crowd heatmap analytics, CCTV threats, and stadium resources." />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self';" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' ; style-src 'self'  https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self';" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
-  <script src="../assets/js/utils.js"></script>
-  <script>
-    checkRouteGuard('admin');
-  </script>
-  <style>
-    body {
-      display: none;
-    }
-  </style>
+  
+  
+  
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
     href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
     rel="stylesheet" />
   <link rel="stylesheet" href="../assets/shared.css" />
-  <style>
-    /* Admin specific styling */
-    .admin-bg-glow {
-      position: fixed;
-      top: -20%;
-      left: -20%;
-      width: 50%;
-      height: 50%;
-      background: radial-gradient(circle, rgba(10, 132, 255, 0.08) 0%, transparent 70%);
-      filter: blur(80px);
-      pointer-events: none;
-      z-index: -1;
-    }
-
-    /* Tab navigation views */
-    .tab-view {
-      display: none;
-    }
-
-    .tab-view.active {
-      display: block;
-      animation: fadeInUp 0.4s ease forwards;
-    }
-
-    /* Heatmap SVG */
-    .heatmap-svg {
-      width: 100%;
-      max-height: 480px;
-      background: #070c16;
-      border-radius: var(--radius-lg);
-      border: 1px solid var(--border);
-    }
-
-    .heatmap-zone {
-      transition: fill 0.8s ease, opacity 0.8s ease;
-      cursor: pointer;
-    }
-
-    /* CCTV grid screen layouts */
-    .cctv-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 16px;
-    }
-
-    .cctv-screen {
-      background: #000;
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      position: relative;
-      aspect-ratio: 16/9;
-      overflow: hidden;
-    }
-
-    .cctv-video-mock {
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(180deg, #090e1a 0%, #03060c 100%);
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    /* CRT Scan Line effect */
-    .cctv-scanline {
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-      background-size: 100% 4px, 6px 100%;
-      pointer-events: none;
-      z-index: 10;
-    }
-
-    .cctv-timestamp {
-      position: absolute;
-      top: 12px;
-      left: 12px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
-      color: rgba(255, 255, 255, 0.6);
-      background: rgba(0, 0, 0, 0.5);
-      padding: 2px 6px;
-      border-radius: 4px;
-      z-index: 5;
-    }
-
-    .cctv-label {
-      position: absolute;
-      bottom: 12px;
-      left: 12px;
-      font-family: 'Outfit', sans-serif;
-      font-size: 13px;
-      font-weight: 700;
-      background: rgba(0, 0, 0, 0.5);
-      padding: 2px 8px;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      z-index: 5;
-    }
-
-    .cctv-overlay-box {
-      position: absolute;
-      border: 2px solid var(--primary);
-      border-radius: 4px;
-      background: rgba(0, 229, 204, 0.05);
-      z-index: 4;
-      display: flex;
-      flex-direction: column;
-      pointer-events: none;
-    }
-
-    .cctv-overlay-box.warning {
-      border-color: var(--warning);
-      background: rgba(255, 149, 0, 0.05);
-    }
-
-    .cctv-overlay-box.danger {
-      border-color: var(--danger);
-      background: rgba(255, 59, 78, 0.05);
-      animation: alertBlink 1s infinite alternate;
-    }
-
-    @keyframes alertBlink {
-      from {
-        border-color: var(--danger);
-      }
-
-      to {
-        border-color: transparent;
-      }
-    }
-
-    .cctv-overlay-text {
-      background: var(--primary);
-      color: #000;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 9px;
-      font-weight: 700;
-      padding: 1px 4px;
-      align-self: flex-start;
-    }
-
-    .cctv-overlay-box.warning .cctv-overlay-text {
-      background: var(--warning);
-    }
-
-    .cctv-overlay-box.danger .cctv-overlay-text {
-      background: var(--danger);
-      color: #fff;
-    }
-
-    /* Static noise simulator overlay for camera feeds */
-    .cctv-noise {
-      position: absolute;
-      inset: 0;
-      background-image: radial-gradient(circle, rgba(255, 255, 255, 0.15) 1px, transparent 1px);
-      background-size: 3px 3px;
-      opacity: 0.15;
-      pointer-events: none;
-      animation: noiseMove 0.2s infinite;
-    }
-
-    @keyframes noiseMove {
-      0% {
-        transform: translate(0, 0);
-      }
-
-      50% {
-        transform: translate(-1px, 1px);
-      }
-
-      100% {
-        transform: translate(1px, -1px);
-      }
-    }
-
-    /* Slider styling */
-    .time-slider {
-      -webkit-appearance: none;
-      width: 100%;
-      height: 6px;
-      border-radius: var(--radius-full);
-      background: var(--bg-elevated);
-      outline: none;
-      margin: 16px 0;
-    }
-
-    .time-slider::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      background: var(--primary);
-      cursor: pointer;
-      box-shadow: 0 0 10px var(--primary);
-      transition: transform 0.1s;
-    }
-
-    .time-slider::-webkit-slider-thumb:hover {
-      transform: scale(1.2);
-    }
-
-    /* Dial gauge layout */
-    .gauge-container {
-      position: relative;
-      width: 120px;
-      height: 120px;
-      margin: 0 auto 12px;
-    }
-
-    .gauge-svg {
-      width: 120px;
-      height: 120px;
-    }
-
-    .gauge-track {
-      fill: none;
-      stroke: var(--bg-elevated);
-      stroke-width: 8;
-    }
-
-    .gauge-fill {
-      fill: none;
-      stroke-width: 8;
-      stroke-linecap: round;
-      stroke-dasharray: 251.2;
-      stroke-dashoffset: 251.2;
-      transition: stroke-dashoffset 0.8s ease;
-    }
-
-    .gauge-value-label {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      font-family: 'Outfit', sans-serif;
-      font-size: 20px;
-      font-weight: 800;
-    }
-  </style>
+  
+  <link rel="stylesheet" href="../assets/css/admin.css" />
+  <script src="../assets/js/utils.js"></script>
+  <script src="../assets/js/admin-guard.js"></script>
 </head>
 
 <body>
@@ -304,16 +56,16 @@
 
     <div class="sidebar-section">
       <div class="sidebar-section-label">Operations Control</div>
-      <button class="sidebar-item active" data-tab="dashboard" onclick="switchTab('dashboard')">
+      <button class="sidebar-item active" data-tab="dashboard" data-action="switchTab" data-target="dashboard">
         <span class="item-icon">📊</span> Operations Console
       </button>
-      <button class="sidebar-item" data-tab="heatmap" onclick="switchTab('heatmap')">
+      <button class="sidebar-item" data-tab="heatmap" data-action="switchTab" data-target="heatmap">
         <span class="item-icon">🔥</span> Live Crowd Heatmap
       </button>
-      <button class="sidebar-item" data-tab="security" onclick="switchTab('security')">
+      <button class="sidebar-item" data-tab="security" data-action="switchTab" data-target="security">
         <span class="item-icon">👁️</span> CCTV & Security AI
       </button>
-      <button class="sidebar-item" data-tab="sustainability" onclick="switchTab('sustainability')">
+      <button class="sidebar-item" data-tab="sustainability" data-action="switchTab" data-target="sustainability">
         <span class="item-icon">🌱</span> ESG & Sustainability
       </button>
     </div>
@@ -343,7 +95,7 @@
             <div style="font-size:10px;color:var(--text-muted);">Root Operator</div>
           </div>
         </div>
-        <a href="auth.html" onclick="sessionStorage.removeItem('nexus_user');" class="sidebar-item"
+        <a href="auth.html" class="sidebar-item logout-link" class="sidebar-item"
           style="margin-top:10px; color:var(--danger);">
           <span class="item-icon">🚪</span> Sign Out
         </a>
@@ -353,7 +105,7 @@
 
   <!-- HEADER -->
   <header class="header">
-    <button class="btn btn-outline btn-icon" id="menu-toggle" style="display:none;" onclick="toggleMobileSidebar()"
+    <button class="btn btn-outline btn-icon" id="menu-toggle" style="display:none;" data-action="toggleMobileSidebar"
       aria-label="Toggle Sidebar Menu">☰</button>
     <div style="display:flex;align-items:center;gap:8px;">
       <span class="status-dot live"></span>
@@ -370,7 +122,7 @@
         <div style="font-size:12px;font-weight:600;color:var(--success);">48/48 Feeds Processing</div>
       </div>
       <div style="width:1px;height:24px;background:var(--border);" class="hidden-mobile"></div>
-      <button class="btn btn-danger btn-sm" onclick="triggerTestAlarm()">🚨 Trigger Test Alert</button>
+      <button class="btn btn-danger btn-sm" data-action="triggerTestAlarm">🚨 Trigger Test Alert</button>
     </div>
   </header>
 
@@ -488,13 +240,13 @@
             </div>
             <div style="display:flex;flex-direction:column;gap:10px;margin-top:20px;">
               <button class="btn btn-primary w-full"
-                onclick="alert('Digital twins synced. Pushing Exit Route Advisory notices to fan companion apps.')">Advisory
+                data-action="alert" data-message="Digital twins synced. Pushing Exit Route Advisory notices to fan companion apps.">Advisory
                 Broadcast</button>
               <button class="btn btn-outline w-full"
-                onclick="alert('Radio link initiated: Dispatching crew to Gate B to relieve line.')">Dispatch Concourse
+                data-action="alert" data-message="Radio link initiated: Dispatching crew to Gate B to relieve line.">Dispatch Concourse
                 Marshall</button>
               <button class="btn btn-outline w-full"
-                onclick="alert('Halal food concessions queue timer sync verified.')">Refresh Queue Metrics</button>
+                data-action="alert" data-message="Halal food concessions queue timer sync verified.">Refresh Queue Metrics</button>
             </div>
           </div>
         </div>
@@ -605,7 +357,7 @@
 
             <div>
               <button class="btn btn-primary w-full"
-                onclick="alert('Heatmap logs compiled. Downloaded SVG matrix schema file.')">Download Matrix
+                data-action="alert" data-message="Heatmap logs compiled. Downloaded SVG matrix schema file.">Download Matrix
                 Schema</button>
             </div>
           </div>
@@ -711,7 +463,7 @@
 
             <div>
               <button class="btn btn-outline w-full"
-                onclick="alert('Camera calibration handshake complete. Resynchronizing 48 lens captures.')">Recalibrating
+                data-action="alert" data-message="Camera calibration handshake complete. Resynchronizing 48 lens captures.">Recalibrating
                 Cameras</button>
             </div>
           </div>
@@ -808,132 +560,8 @@
     </div>
   </main>
 
-  <script>
-    // ── Tab switcher ───────────────────────────
-    function switchTab(tabId) {
-      document.querySelectorAll('.tab-view').forEach(el => el.classList.remove('active'));
-      document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
-
-      const targetView = document.getElementById('view-' + tabId);
-      if (targetView) targetView.classList.add('active');
-
-      const activeSidebarItem = document.querySelector(`.sidebar-item[data-tab="${tabId}"]`);
-      if (activeSidebarItem) activeSidebarItem.classList.add('active');
-    }
-
-    // ── Mobile Sidebar Toggle ──────────────────
-    function toggleMobileSidebar() {
-      const sidebar = document.getElementById('sidebar');
-      sidebar.classList.toggle('open');
-    }
-
-    // ── Live Fan Count Increments (cached DOM ref) ──
-    var liveFansEl = document.getElementById('fan-count-live');
-    var fans = 64847;
-    setInterval(function () {
-      fans += Math.floor(Math.random() * 8) - 3;
-      fans = Math.max(64000, Math.min(65000, fans));
-      liveFansEl.textContent = fans.toLocaleString();
-    }, 3000);
-
-    // ── Simulate Heatmap Shifts ────────────────
-    function simulateHeatmapShift() {
-      const sliderVal = document.getElementById('heatmap-time-slider').value;
-      const label = document.getElementById('time-prediction-label');
-
-      const zoneA = document.getElementById('hm-sec-a');
-      const zoneB = document.getElementById('hm-sec-b');
-      const zoneC = document.getElementById('hm-sec-c');
-      const zoneD = document.getElementById('hm-sec-d');
-
-      const valA = document.getElementById('hm-val-a');
-      const valB = document.getElementById('hm-val-b');
-      const valC = document.getElementById('hm-val-c');
-      const valD = document.getElementById('hm-val-d');
-
-      if (sliderVal === '0') {
-        label.textContent = 'LIVE STATUS';
-        zoneA.setAttribute('fill', 'url(#grad-low)');
-        zoneB.setAttribute('fill', 'url(#grad-high)');
-        zoneC.setAttribute('fill', 'url(#grad-low)');
-        zoneD.setAttribute('fill', 'url(#grad-med)');
-
-        valA.textContent = '38% (Normal)'; valA.style.color = 'var(--success)';
-        valB.textContent = '88% (Bottle-Neck)'; valB.style.color = 'var(--danger)';
-        valC.textContent = '42% (Normal)'; valC.style.color = 'var(--success)';
-        valD.textContent = '64% (Dense)'; valD.style.color = 'var(--warning)';
-      } else if (sliderVal === '1') {
-        label.textContent = 'PREDICTION: +15 MIN';
-        zoneA.setAttribute('fill', 'url(#grad-med)');
-        zoneB.setAttribute('fill', 'url(#grad-med)');
-        zoneC.setAttribute('fill', 'url(#grad-low)');
-        zoneD.setAttribute('fill', 'url(#grad-high)');
-
-        valA.textContent = '52% (Dense)'; valA.style.color = 'var(--warning)';
-        valB.textContent = '68% (Dense)'; valB.style.color = 'var(--warning)';
-        valC.textContent = '45% (Normal)'; valC.style.color = 'var(--success)';
-        valD.textContent = '84% (Bottle-Neck)'; valD.style.color = 'var(--danger)';
-      } else if (sliderVal === '2') {
-        label.textContent = 'PREDICTION: +30 MIN';
-        zoneA.setAttribute('fill', 'url(#grad-high)');
-        zoneB.setAttribute('fill', 'url(#grad-low)');
-        zoneC.setAttribute('fill', 'url(#grad-med)');
-        zoneD.setAttribute('fill', 'url(#grad-low)');
-
-        valA.textContent = '91% (Bottle-Neck)'; valA.style.color = 'var(--danger)';
-        valB.textContent = '41% (Normal)'; valB.style.color = 'var(--success)';
-        valC.textContent = '55% (Dense)'; valC.style.color = 'var(--warning)';
-        valD.textContent = '36% (Normal)'; valD.style.color = 'var(--success)';
-      } else {
-        label.textContent = 'PREDICTION: POST-MATCH EXIT';
-        zoneA.setAttribute('fill', 'url(#grad-high)');
-        zoneB.setAttribute('fill', 'url(#grad-high)');
-        zoneC.setAttribute('fill', 'url(#grad-high)');
-        zoneD.setAttribute('fill', 'url(#grad-high)');
-
-        valA.textContent = '96% (Bottle-Neck)'; valA.style.color = 'var(--danger)';
-        valB.textContent = '98% (Bottle-Neck)'; valB.style.color = 'var(--danger)';
-        valC.textContent = '94% (Bottle-Neck)'; valC.style.color = 'var(--danger)';
-        valD.textContent = '97% (Bottle-Neck)'; valD.style.color = 'var(--danger)';
-      }
-    }
-
-    // ── Live Security Alert Simulator ──────────
-    function triggerTestAlarm() {
-      const feed = document.getElementById('ops-log-feed');
-      const counter = document.getElementById('alert-counter-live');
-
-      // Update counters
-      counter.textContent = '2';
-      counter.parentElement.querySelector('.metric-change').textContent = '↑ 2 Active Emergency Actions';
-      counter.parentElement.querySelector('.metric-change').className = 'metric-change down';
-
-      // Prepend alarm log to stream
-      const timeStr = new Date().toLocaleTimeString('en-US', { hour12: false });
-      const newAlert = document.createElement('div');
-      newAlert.style.display = 'flex';
-      newAlert.style.alignItems = 'start';
-      newAlert.style.gap = '12px';
-      newAlert.style.background = 'rgba(255,59,78,0.05)';
-      newAlert.style.border = '1px solid rgba(255,59,78,0.1)';
-      newAlert.style.padding = '12px';
-      newAlert.style.borderRadius = '8px';
-      newAlert.className = 'animate-fadeInUp';
-      newAlert.innerHTML = `
-        <span style="font-size:18px;">🚨</span>
-        <div style="flex-1;">
-          <div style="display:flex;justify-content:between;font-weight:700;font-size:13px;color:var(--danger);">
-            <span>AI CCTV Panic Threat</span>
-            <span>${timeStr}</span>
-          </div>
-          <p style="font-size:12px;color:var(--text-secondary);margin-top:2px;">Crowd panic/fall surge detected in Section D Gate D2 corridor. Dispatching standby safety marshalls immediately.</p>
-        </div>
-      `;
-
-      feed.insertBefore(newAlert, feed.firstChild);
-      alert('Security Threat Alarm Broadcasted: standby units alerted.');
-    }
-  </script>
+  
+  <script src="../assets/js/admin.js"></script>
 </body>
 
 </html>
